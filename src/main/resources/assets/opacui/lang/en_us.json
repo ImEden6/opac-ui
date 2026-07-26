@@ -1,0 +1,42 @@
+{
+  "key.categories.opacui": "OPAC UI",
+  "key.opacui.open_party_screen": "Open Party Screen",
+
+  "screen.opacui.party_manager": "Party Manager",
+  "screen.opacui.no_party": "You are not in a party.",
+  "screen.opacui.create_party": "Create Party",
+  "screen.opacui.leave_party": "Leave Party",
+  "screen.opacui.disband_party": "Disband Party",
+
+  "screen.opacui.tab_members": "Members",
+  "screen.opacui.tab_invites": "Invites",
+  "screen.opacui.tab_allies": "Allies",
+
+  "screen.opacui.invite": "Invite",
+  "screen.opacui.invite_placeholder": "Player name...",
+  "screen.opacui.kick": "Kick",
+  "screen.opacui.revoke": "Revoke",
+  "screen.opacui.transfer": "Transfer",
+  "screen.opacui.unally": "Unally",
+
+  "screen.opacui.confirm_title": "Are you sure?",
+  "screen.opacui.confirm_disband": "Disband your party? This cannot be undone.",
+  "screen.opacui.confirm_kick": "Kick %s from the party?",
+  "screen.opacui.confirm_transfer": "Transfer ownership to %s? You will become a regular member.",
+  "screen.opacui.confirm": "Confirm",
+  "screen.opacui.cancel": "Cancel",
+
+  "screen.opacui.feedback.invited": "Invited %s",
+  "screen.opacui.feedback.kicked": "Kicked %s",
+  "screen.opacui.feedback.promoted": "Promoted %s to %s",
+  "screen.opacui.feedback.demoted": "Demoted %s to %s",
+  "screen.opacui.feedback.transferred": "Transferred ownership to %s",
+  "screen.opacui.feedback.unallied": "Removed ally %s",
+  "screen.opacui.feedback.revoked": "Revoked invite for %s",
+
+  "screen.opacui.empty_invites": "No pending invites",
+  "screen.opacui.empty_allies": "No allied parties",
+
+  "screen.opacui.tooltip.kick": "Kick this member from the party",
+  "screen.opacui.tooltip.transfer": "Transfer party ownership"
+}
