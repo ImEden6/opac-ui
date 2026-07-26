@@ -22,46 +22,59 @@ public class ConfirmActionScreen extends Screen {
         this.onConfirm = onConfirm;
     }
 
+    private Button confirmButton;
+    private Button cancelButton;
+
     @Override
     protected void init() {
         super.init();
-        int cx = width / 2;
-        int cy = height / 2;
-
-        addRenderableWidget(Button.builder(
+        confirmButton = addRenderableWidget(Button.builder(
                 Component.translatable("screen.opacui.confirm"),
-                b -> {
-                    onConfirm.run();
-                }
-        ).bounds(cx - 105, cy + 14, 100, 20).build());
+                b -> onConfirm.run()
+        ).bounds(0, 0, 100, 20).build());
 
-        addRenderableWidget(Button.builder(
+        cancelButton = addRenderableWidget(Button.builder(
                 Component.translatable("screen.opacui.cancel"),
                 b -> minecraft.setScreen(parent)
-        ).bounds(cx + 5, cy + 14, 100, 20).build());
+        ).bounds(0, 0, 100, 20).build());
     }
 
     @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float delta) {
-        // Dim the background
         renderBackground(g);
 
-        // Dialog box
-        int boxW = 240, boxH = 86;
+        var lines = font.split(message, 220);
+        int lineCount = Math.max(1, lines.size());
+        int msgHeight = lineCount * (font.lineHeight + 2);
+        int boxW = 240;
+        int boxH = 24 + msgHeight + 36;
+
         int x = (width - boxW) / 2;
         int y = (height - boxH) / 2;
+
         g.fill(x - 2, y - 2, x + boxW + 2, y + boxH + 2, 0xFF222222);
         g.fill(x, y, x + boxW, y + boxH, 0xFF333333);
 
-        // Title
         g.drawCenteredString(font, title, width / 2, y + 8, 0xFFFFAA00);
-        // Message (word-wrap at 220 px)
+
         int msgColor = 0xFFDDDDDD;
         int lineY = y + 24;
-        for (var line : font.split(message, 220)) {
+        for (var line : lines) {
             g.drawString(font, line, x + 10, lineY, msgColor, false);
             lineY += font.lineHeight + 2;
         }
+
+        int btnY = lineY + 8;
+        int cx = width / 2;
+        if (confirmButton != null) {
+            confirmButton.setX(cx - 105);
+            confirmButton.setY(btnY);
+        }
+        if (cancelButton != null) {
+            cancelButton.setX(cx + 5);
+            cancelButton.setY(btnY);
+        }
+
         super.render(g, mouseX, mouseY, delta);
     }
 

@@ -40,6 +40,11 @@ public final class AvatarCache {
 
         long now = System.currentTimeMillis();
 
+        // Evict expired entries in REQUESTED_TIMESTAMPS if map grows large
+        if (REQUESTED_TIMESTAMPS.size() > 100) {
+            REQUESTED_TIMESTAMPS.entrySet().removeIf(entry -> now - entry.getValue() > CACHE_TTL_MS);
+        }
+
         // 1. Check cached UUID (validate TTL)
         if (uuid != null) {
             CachedSkin cached = CACHE_BY_UUID.get(uuid);
@@ -67,30 +72,28 @@ public final class AvatarCache {
             }
         }
 
-        // 3. Request asynchronously via SkinManager if not requested recently
-        SkinManager skinManager = mc.getSkinManager();
-        Object key = uuid != null ? uuid : (username != null && !username.isEmpty() ? username.toLowerCase() : null);
-
-        if (key != null) {
-            Long lastReq = REQUESTED_TIMESTAMPS.get(key);
-            if (lastReq == null || now - lastReq > CACHE_TTL_MS) {
-                REQUESTED_TIMESTAMPS.put(key, now);
-                GameProfile profile = new GameProfile(uuid, username);
-                skinManager.registerSkins(profile, (type, location, profileTexture) -> {
-                    if (type == MinecraftProfileTexture.Type.SKIN) {
-                        CachedSkin entry = new CachedSkin(location, System.currentTimeMillis());
-                        if (uuid != null) CACHE_BY_UUID.put(uuid, entry);
-                        if (username != null && !username.isEmpty()) CACHE_BY_NAME.put(username.toLowerCase(), entry);
-                    }
-                }, true);
-            }
-        }
-
         if (uuid == null && (username == null || username.isEmpty())) {
             return DefaultPlayerSkin.getDefaultSkin();
         }
 
         GameProfile profile = new GameProfile(uuid, username);
+
+        // 3. Request asynchronously via SkinManager if not requested recently
+        SkinManager skinManager = mc.getSkinManager();
+        Object key = uuid != null ? uuid : username.toLowerCase();
+
+        Long lastReq = REQUESTED_TIMESTAMPS.get(key);
+        if (lastReq == null || now - lastReq > CACHE_TTL_MS) {
+            REQUESTED_TIMESTAMPS.put(key, now);
+            skinManager.registerSkins(profile, (type, location, profileTexture) -> {
+                if (type == MinecraftProfileTexture.Type.SKIN) {
+                    CachedSkin entry = new CachedSkin(location, System.currentTimeMillis());
+                    if (uuid != null) CACHE_BY_UUID.put(uuid, entry);
+                    if (username != null && !username.isEmpty()) CACHE_BY_NAME.put(username.toLowerCase(), entry);
+                }
+            }, true);
+        }
+
         return skinManager.getInsecureSkinLocation(profile);
     }
 }

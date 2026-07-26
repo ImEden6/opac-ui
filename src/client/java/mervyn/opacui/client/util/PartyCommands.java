@@ -28,7 +28,9 @@ public final class PartyCommands {
 
     /** Renames the party by setting the parties.name config option. */
     public static void renameParty(Minecraft mc, String newName) {
-        String escaped = newName.replace("\\", "\\\\").replace("\"", "\\\"");
+        if (newName == null) return;
+        String sanitized = newName.replaceAll("[\\r\\n\\t]", "");
+        String escaped = sanitized.replace("\\", "\\\\").replace("\"", "\\\"");
         send(mc, "openpac player-config set parties.name \"" + escaped + "\"");
     }
 

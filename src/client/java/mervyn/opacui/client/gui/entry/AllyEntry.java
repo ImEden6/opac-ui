@@ -40,9 +40,7 @@ public class AllyEntry extends TooltipListEntry<Void> {
         Minecraft mc = Minecraft.getInstance();
         btnUnally = Button.builder(Component.translatable("screen.opacui.unally"), b -> {
             String defaultName = ally.getAllyDefaultName() != null ? ally.getAllyDefaultName() : "";
-            String ownerName = defaultName.endsWith("'s Party")
-                    ? defaultName.substring(0, defaultName.length() - 8)
-                    : defaultName;
+            String ownerName = parseOwnerName(defaultName);
             PartyCommands.removeAlly(mc, ownerName);
             String displayName = (ally.getAllyName() != null && !ally.getAllyName().isEmpty()) ? ally.getAllyName() : defaultName;
             onAction.accept(Component.translatable("screen.opacui.feedback.unallied", displayName));
@@ -54,12 +52,25 @@ public class AllyEntry extends TooltipListEntry<Void> {
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button == 0 && Minecraft.getInstance().screen instanceof mervyn.opacui.client.gui.PartyScreen ps) {
             String defaultName = ally.getAllyDefaultName() != null ? ally.getAllyDefaultName() : "";
-            String ownerName = defaultName.endsWith("'s Party")
-                    ? defaultName.substring(0, defaultName.length() - 8)
-                    : defaultName;
+            String ownerName = parseOwnerName(defaultName);
             ps.populateInputBox(ownerName);
         }
         return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    public static String parseOwnerName(String defaultName) {
+        if (defaultName == null || defaultName.isEmpty()) {
+            return "";
+        }
+        int idx = defaultName.lastIndexOf("'s Party");
+        if (idx > 0) {
+            return defaultName.substring(0, idx);
+        }
+        int apostropheIdx = defaultName.indexOf('\'');
+        if (apostropheIdx > 0) {
+            return defaultName.substring(0, apostropheIdx);
+        }
+        return defaultName;
     }
 
     @Override
