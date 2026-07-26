@@ -1,6 +1,5 @@
 package mervyn.opacui.client.gui.entry;
 
-import mervyn.opacui.client.gui.PartyScreen;
 import mervyn.opacui.client.util.AvatarCache;
 import net.minecraft.client.gui.components.PlayerFaceRenderer;
 import net.minecraft.resources.ResourceLocation;
@@ -24,7 +23,7 @@ import java.util.function.Consumer;
 
 /**
  * A single scrollable-list row representing one party member.
- * Renders: [★?] username (rank label)  [▼Rank] [▲Rank] [Kick] [Transfer?]
+ * Renders: [★?] username (rank label) [▼Rank] [▲Rank] [Kick] [Transfer?]
  *
  * Buttons are only shown if the local player has sufficient rank.
  */
@@ -51,8 +50,7 @@ public class MemberEntry extends TooltipListEntry<Void> {
             boolean localIsOwner,
             boolean isSelf,
             boolean isOnline,
-            Consumer<Component> onAction
-    ) {
+            Consumer<Component> onAction) {
         super(Component.empty(), null);
         this.member = member;
         this.isOnline = isOnline;
@@ -65,18 +63,22 @@ public class MemberEntry extends TooltipListEntry<Void> {
         btnRankDown = EntryButton.create(Component.literal("▼"), EntryButton.WIDTH / 2 - 1, EntryButton.HEIGHT, b -> {
             if (downRank != null) {
                 PartyCommands.setRank(mc, downRank.name(), member.getUsername());
-                onAction.accept(Component.translatable("screen.opacui.feedback.demoted", member.getUsername(), downRank.name()));
+                onAction.accept(Component.translatable("screen.opacui.feedback.demoted", member.getUsername(),
+                        downRank.name()));
             }
         });
-        if (downRank != null) btnRankDown.setTooltip(Tooltip.create(Component.literal("Demote to " + downRank.name())));
+        if (downRank != null)
+            btnRankDown.setTooltip(Tooltip.create(Component.literal("Demote to " + downRank.name())));
 
         btnRankUp = EntryButton.create(Component.literal("▲"), EntryButton.WIDTH / 2 - 1, EntryButton.HEIGHT, b -> {
             if (upRank != null) {
                 PartyCommands.setRank(mc, upRank.name(), member.getUsername());
-                onAction.accept(Component.translatable("screen.opacui.feedback.promoted", member.getUsername(), upRank.name()));
+                onAction.accept(
+                        Component.translatable("screen.opacui.feedback.promoted", member.getUsername(), upRank.name()));
             }
         });
-        if (upRank != null) btnRankUp.setTooltip(Tooltip.create(Component.literal("Promote to " + upRank.name())));
+        if (upRank != null)
+            btnRankUp.setTooltip(Tooltip.create(Component.literal("Promote to " + upRank.name())));
 
         btnKick = EntryButton.create(Component.translatable("screen.opacui.kick"), b -> {
             Screen current = mc.screen;
@@ -87,10 +89,10 @@ public class MemberEntry extends TooltipListEntry<Void> {
                         Component.translatable("screen.opacui.confirm_kick", member.getUsername()),
                         () -> {
                             PartyCommands.kick(mc, member.getUsername());
-                            onAction.accept(Component.translatable("screen.opacui.feedback.kicked", member.getUsername()));
+                            onAction.accept(
+                                    Component.translatable("screen.opacui.feedback.kicked", member.getUsername()));
                             mc.setScreen(current);
-                        }
-                ));
+                        }));
             }
         });
         btnKick.setTooltip(Tooltip.create(Component.translatable("screen.opacui.tooltip.kick")));
@@ -104,10 +106,10 @@ public class MemberEntry extends TooltipListEntry<Void> {
                         Component.translatable("screen.opacui.confirm_transfer", member.getUsername()),
                         () -> {
                             PartyCommands.transferOwnership(mc, member.getUsername());
-                            onAction.accept(Component.translatable("screen.opacui.feedback.transferred", member.getUsername()));
+                            onAction.accept(
+                                    Component.translatable("screen.opacui.feedback.transferred", member.getUsername()));
                             mc.setScreen(current);
-                        }
-                ));
+                        }));
             }
         });
         btnTransfer.setTooltip(Tooltip.create(Component.translatable("screen.opacui.tooltip.transfer")));
@@ -116,11 +118,12 @@ public class MemberEntry extends TooltipListEntry<Void> {
         // rank buttons: ADMIN+ only, not on self, not on owner
         boolean canRank = !isSelf && !member.isOwner() && localRank.ordinal() >= PartyMemberRank.ADMIN.ordinal();
         btnRankDown.active = canRank && member.getRank().ordinal() > PartyMemberRank.MEMBER.ordinal();
-        btnRankUp.active   = canRank && member.getRank().ordinal() < PartyMemberRank.ADMIN.ordinal();
+        btnRankUp.active = canRank && member.getRank().ordinal() < PartyMemberRank.ADMIN.ordinal();
         btnRankDown.visible = canRank;
-        btnRankUp.visible   = canRank;
+        btnRankUp.visible = canRank;
 
-        // kick: MODERATOR+ only, not self, not owner, target rank <= local rank (unless owner)
+        // kick: MODERATOR+ only, not self, not owner, target rank <= local rank (unless
+        // owner)
         btnKick.visible = !isSelf && !member.isOwner() && localRank.ordinal() >= PartyMemberRank.MODERATOR.ordinal()
                 && (localIsOwner || member.getRank().ordinal() <= localRank.ordinal());
 
@@ -130,14 +133,12 @@ public class MemberEntry extends TooltipListEntry<Void> {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (button == 0 && Minecraft.getInstance().screen instanceof PartyScreen ps) {
-            ps.populateInputBox(member.getUsername());
-        }
         return super.mouseClicked(mouseX, mouseY, button);
     }
 
     @Override
-    public void render(GuiGraphics g, int index, int y, int x, int entryWidth, int entryHeight, int mouseX, int mouseY, boolean isHovered, float delta) {
+    public void render(GuiGraphics g, int index, int y, int x, int entryWidth, int entryHeight, int mouseX, int mouseY,
+            boolean isHovered, float delta) {
         Minecraft mc = Minecraft.getInstance();
 
         // ── Player Face Avatar ────────────────────────────────────────────
@@ -192,16 +193,23 @@ public class MemberEntry extends TooltipListEntry<Void> {
     }
 
     @Override
-    public Void getValue() { return null; }
+    public Void getValue() {
+        return null;
+    }
 
     @Override
-    public Optional<Void> getDefaultValue() { return Optional.empty(); }
+    public Optional<Void> getDefaultValue() {
+        return Optional.empty();
+    }
 
     @Override
-    public boolean isEdited() { return false; }
+    public boolean isEdited() {
+        return false;
+    }
 
     @Override
-    public void save() {}
+    public void save() {
+    }
 
     @Override
     public List<? extends net.minecraft.client.gui.components.events.GuiEventListener> children() {
@@ -214,7 +222,9 @@ public class MemberEntry extends TooltipListEntry<Void> {
     }
 
     @Override
-    public Optional<Component[]> getTooltip() { return Optional.empty(); }
+    public Optional<Component[]> getTooltip() {
+        return Optional.empty();
+    }
 
     // ── Rank cycling helpers ──────────────────────────────────────────────
 

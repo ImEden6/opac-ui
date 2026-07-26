@@ -18,6 +18,9 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import mervyn.opacui.client.util.AvatarCache;
+import net.minecraft.client.gui.components.PlayerFaceRenderer;
+import net.minecraft.resources.ResourceLocation;
 import xaero.pac.client.parties.party.api.IClientPartyAPI;
 import xaero.pac.client.parties.party.api.IClientPartyStorageAPI;
 import xaero.pac.client.world.capability.api.ClientWorldCapabilityTypes;
@@ -102,10 +105,9 @@ public class PartyScreen extends Screen {
         // ── Option A: OPAC Config Gear Button in top-right corner ───────────
         addRenderableWidget(Button.builder(
                 Component.literal("⚙"),
-                b -> minecraft.setScreen(new ConfigMenu(parent, this))
-        ).bounds(width - 24, 6, 18, 18)
-        .tooltip(Tooltip.create(Component.literal("OPAC Configuration")))
-        .build());
+                b -> minecraft.setScreen(new ConfigMenu(parent, this))).bounds(width - 24, 6, 18, 18)
+                .tooltip(Tooltip.create(Component.literal("OPAC Configuration")))
+                .build());
 
         IClientPartyAPI party = getParty();
 
@@ -118,10 +120,6 @@ public class PartyScreen extends Screen {
             initNoParty();
         } else {
             initInParty(party);
-            // Restore previously selected tab
-            if (savedTabIndex > 0 && clothScreen instanceof AbstractConfigScreen acs) {
-                acs.selectedCategoryIndex = savedTabIndex;
-            }
         }
         updateActionBarForTab();
     }
@@ -168,14 +166,13 @@ public class PartyScreen extends Screen {
                             showFeedback(Component.literal("Renamed party to " + newName));
                             scheduleActionRefresh();
                         }
-                    }
-            ).bounds(width / 2 + 45, 6, 50, 16).build());
+                    }).bounds(width / 2 + 45, 6, 50, 16).build());
         }
 
         // ── Build Cloth Config screen ─────────────────────────────────────
         ConfigBuilder builder = ConfigBuilder.create()
                 .setParentScreen(parent) // cloth closes back into parent screen
-                .setTitle(Component.translatable("screen.opacui.party_manager"))
+                .setTitle(localIsOwner ? Component.empty() : Component.translatable("screen.opacui.party_manager"))
                 .setSavingRunnable(() -> {
                 }) // no config to save; all actions are immediate
                 .setDoesConfirmSave(false);
@@ -244,6 +241,9 @@ public class PartyScreen extends Screen {
         }
 
         clothScreen = builder.build();
+        if (savedTabIndex > 0 && clothScreen instanceof AbstractConfigScreen acs) {
+            acs.selectedCategoryIndex = savedTabIndex;
+        }
         clothScreen.init(mc, width, height - CLOTH_BOTTOM_MARGIN);
 
         // ── Invite / Add Ally bar ──────────────────────────────────────────
@@ -262,9 +262,23 @@ public class PartyScreen extends Screen {
                 b -> {
                     String name = inviteBox.getValue().trim();
                     if (!name.isEmpty()) {
+                        boolean isOnline = mc.getConnection() != null && mc.getConnection().getOnlinePlayers().stream()
+                                .anyMatch(pi -> pi.getProfile().getName().equalsIgnoreCase(name));
+                        if (!isOnline) {
+                            showFeedback(Component.translatable("screen.opacui.feedback.player_not_online", name));
+                            return;
+                        }
+
+                        boolean isAlreadyMember = party.getMemberInfoStream()
+                                .anyMatch(m -> m.getUsername().equalsIgnoreCase(name));
+                        if (isAlreadyMember) {
+                            showFeedback(Component.translatable("screen.opacui.feedback.already_in_party", name));
+                            return;
+                        }
+
                         if (savedTabIndex == 2) {
                             PartyCommands.addAlly(mc, name);
-                            showFeedback(Component.literal("Sent ally request to " + name));
+                            showFeedback(Component.translatable("screen.opacui.feedback.ally_added", name));
                         } else {
                             PartyCommands.invite(mc, name);
                             showFeedback(Component.translatable("screen.opacui.feedback.invited", name));
@@ -338,7 +352,7 @@ public class PartyScreen extends Screen {
         if (showSuggestions && !suggestions.isEmpty()) {
             int boxX = width / 2 - 150;
             int boxY = height - BAR_Y_OFFSET;
-            int itemH = font.lineHeight + 2;
+            int itemH = font.lineHeight + 4;
             int visible = Math.min(suggestions.size(), 5);
             int ddH = visible * itemH + 4;
             int ddY = boxY - ddH - 2;
@@ -349,7 +363,10 @@ public class PartyScreen extends Screen {
                 if (i == selectedSuggestion) {
                     g.fill(boxX, itemY, boxX + 198, itemY + itemH, 0x55555555);
                 }
-                g.drawString(font, suggestions.get(i), boxX + 4, itemY + 1, 0xFFFFFFFF, false);
+                String sName = suggestions.get(i);
+                ResourceLocation skin = AvatarCache.getSkin(minecraft, null, sName);
+                PlayerFaceRenderer.draw(g, skin, boxX + 4, itemY + 1, 8);
+                g.drawString(font, sName, boxX + 16, itemY + 1, 0xFFFFFFFF, false);
             }
         }
     }
@@ -432,7 +449,7 @@ public class PartyScreen extends Screen {
         if (showSuggestions && !suggestions.isEmpty()) {
             int boxX = width / 2 - 150;
             int boxY = height - BAR_Y_OFFSET;
-            int itemH = font.lineHeight + 2;
+            int itemH = font.lineHeight + 4;
             int visible = Math.min(suggestions.size(), 5);
             int ddH = visible * itemH + 4;
             int ddY = boxY - ddH - 2;
@@ -534,11 +551,17 @@ public class PartyScreen extends Screen {
             return;
         }
         String lower = text.toLowerCase();
+        IClientPartyAPI party = getParty();
+        Set<String> memberNames = party != null
+                ? party.getMemberInfoStream().map(m -> m.getUsername().toLowerCase()).collect(Collectors.toSet())
+                : Set.of();
+
         suggestions = minecraft.getConnection().getOnlinePlayers().stream()
                 .map(pi -> pi.getProfile().getName())
+                .filter(name -> !memberNames.contains(name.toLowerCase()))
                 .filter(name -> name.toLowerCase().startsWith(lower))
                 .sorted()
-                .limit(8)
+                .limit(5)
                 .toList();
         selectedSuggestion = -1;
         showSuggestions = !suggestions.isEmpty();

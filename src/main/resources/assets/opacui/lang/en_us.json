@@ -22,7 +22,7 @@
   "screen.opacui.confirm_title": "Are you sure?",
   "screen.opacui.confirm_disband": "Disband your party? This cannot be undone.",
   "screen.opacui.confirm_kick": "Kick %s from the party?",
-  "screen.opacui.confirm_transfer": "Transfer ownership to %s? You will become a regular member.",
+  "screen.opacui.confirm_transfer": "Transfer ownership to %s? You will become an admin.",
   "screen.opacui.confirm": "Confirm",
   "screen.opacui.cancel": "Cancel",
 
@@ -33,6 +33,9 @@
   "screen.opacui.feedback.transferred": "Transferred ownership to %s",
   "screen.opacui.feedback.unallied": "Removed ally %s",
   "screen.opacui.feedback.revoked": "Revoked invite for %s",
+  "screen.opacui.feedback.ally_added": "Added ally %s",
+  "screen.opacui.feedback.already_in_party": "%s is already in your party",
+  "screen.opacui.feedback.player_not_online": "Player %s is not online",
 
   "screen.opacui.empty_invites": "No pending invites",
   "screen.opacui.empty_allies": "No allied parties",

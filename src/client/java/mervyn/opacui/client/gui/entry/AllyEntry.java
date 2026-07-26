@@ -39,12 +39,12 @@ public class AllyEntry extends TooltipListEntry<Void> {
 
         Minecraft mc = Minecraft.getInstance();
         btnUnally = Button.builder(Component.translatable("screen.opacui.unally"), b -> {
-            String defaultName = ally.getAllyDefaultName();
+            String defaultName = ally.getAllyDefaultName() != null ? ally.getAllyDefaultName() : "";
             String ownerName = defaultName.endsWith("'s Party")
                     ? defaultName.substring(0, defaultName.length() - 8)
                     : defaultName;
             PartyCommands.removeAlly(mc, ownerName);
-            String displayName = ally.getAllyName().isEmpty() ? defaultName : ally.getAllyName();
+            String displayName = (ally.getAllyName() != null && !ally.getAllyName().isEmpty()) ? ally.getAllyName() : defaultName;
             onAction.accept(Component.translatable("screen.opacui.feedback.unallied", displayName));
         }).size(BTN_W, BTN_H).build();
         btnUnally.active = canModify;
@@ -53,7 +53,7 @@ public class AllyEntry extends TooltipListEntry<Void> {
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button == 0 && Minecraft.getInstance().screen instanceof mervyn.opacui.client.gui.PartyScreen ps) {
-            String defaultName = ally.getAllyDefaultName();
+            String defaultName = ally.getAllyDefaultName() != null ? ally.getAllyDefaultName() : "";
             String ownerName = defaultName.endsWith("'s Party")
                     ? defaultName.substring(0, defaultName.length() - 8)
                     : defaultName;
