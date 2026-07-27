@@ -64,6 +64,7 @@ public class PartyScreen extends Screen {
     private int lastMemberCount;
     private int lastInviteCount;
     private int lastAllyCount;
+    private boolean lastIsOwner;
     private int actionRefreshTicks;
 
     public PartyScreen(Screen parent) {
@@ -89,10 +90,16 @@ public class PartyScreen extends Screen {
         clothScreen = null;
 
         IClientPartyAPI party = getParty();
+        Minecraft mc = Minecraft.getInstance();
+        UUID localUUID = mc.player == null ? null : mc.player.getUUID();
+        IPartyMemberAPI localMember = (party != null && localUUID != null) ? party.getMemberInfo(localUUID) : null;
+        boolean localIsOwner = localMember != null && localMember.isOwner();
+
         lastPartyPresent = party != null;
         lastMemberCount = party != null ? party.getMemberCount() : 0;
         lastInviteCount = party != null ? party.getInviteCount() : 0;
         lastAllyCount = party != null ? party.getAllyCount() : 0;
+        lastIsOwner = localIsOwner;
 
         if (party == null) {
             initNoParty();
@@ -246,8 +253,14 @@ public class PartyScreen extends Screen {
         boolean localIsOwner = localMember != null && localMember.isOwner();
         boolean canModeratorPlus = localRank.ordinal() >= PartyMemberRank.MODERATOR.ordinal();
 
+        if (localIsOwner != lastIsOwner) {
+            lastIsOwner = localIsOwner;
+            init();
+            return;
+        }
+
         buildClothScreen(party, localUUID, localRank, localIsOwner, canModeratorPlus);
-        actionBarWidget.updateForTab(savedTabIndex);
+        actionBarWidget.updateState(localIsOwner, canModeratorPlus, savedTabIndex, party);
     }
 
     // ─────────────────────────────────────────────────────────────────────
@@ -292,17 +305,23 @@ public class PartyScreen extends Screen {
         }
 
         IClientPartyAPI party = getParty();
+        Minecraft mc = Minecraft.getInstance();
+        UUID localUUID = mc.player == null ? null : mc.player.getUUID();
+        IPartyMemberAPI localMember = (party != null && localUUID != null) ? party.getMemberInfo(localUUID) : null;
+        boolean localIsOwner = localMember != null && localMember.isOwner();
+
         boolean isPresent = party != null;
         int memberCount = party != null ? party.getMemberCount() : 0;
         int inviteCount = party != null ? party.getInviteCount() : 0;
         int allyCount = party != null ? party.getAllyCount() : 0;
 
-        if (isPresent != lastPartyPresent || memberCount != lastMemberCount || inviteCount != lastInviteCount || allyCount != lastAllyCount) {
+        if (isPresent != lastPartyPresent || memberCount != lastMemberCount || inviteCount != lastInviteCount || allyCount != lastAllyCount || localIsOwner != lastIsOwner) {
             lastPartyPresent = isPresent;
             lastMemberCount = memberCount;
             lastInviteCount = inviteCount;
             lastAllyCount = allyCount;
-            refreshPartyLists();
+            lastIsOwner = localIsOwner;
+            init();
             return;
         }
 

@@ -22,6 +22,11 @@ public class PartyActionBarWidget {
     private Button btnLeaveDisband;
     private Button btnDone;
 
+    private int activeTabIndex;
+    private boolean localIsOwner;
+    private boolean canModeratorPlus;
+    private IClientPartyAPI party;
+
     public void init(
             Screen screen,
             Font font,
@@ -37,6 +42,11 @@ public class PartyActionBarWidget {
             Runnable scheduleRefresh,
             Consumer<String> onTextChange
     ) {
+        this.localIsOwner = localIsOwner;
+        this.canModeratorPlus = canModeratorPlus;
+        this.activeTabIndex = activeTabIndex;
+        this.party = party;
+
         Minecraft mc = Minecraft.getInstance();
         int barY = height - barYOffset;
 
@@ -46,20 +56,20 @@ public class PartyActionBarWidget {
         inviteBox.setResponder(onTextChange);
 
         btnSendInvite = Button.builder(
-                activeTabIndex == 2
+                this.activeTabIndex == 2
                         ? Component.translatable("screen.opacui.add_ally")
                         : Component.translatable("screen.opacui.invite"),
-                b -> handleSend(mc, party, activeTabIndex, showFeedback, scheduleRefresh)
+                b -> handleSend(mc, showFeedback, scheduleRefresh)
         ).bounds(width / 2 + 70, barY, 62, 20).build();
-        btnSendInvite.active = canModeratorPlus;
+        btnSendInvite.active = this.canModeratorPlus;
 
         int bottomY = height - bottomYOffset;
         btnLeaveDisband = Button.builder(
-                localIsOwner
+                this.localIsOwner
                         ? Component.translatable("screen.opacui.disband_party")
                         : Component.translatable("screen.opacui.leave_party"),
                 b -> {
-                    if (localIsOwner) {
+                    if (this.localIsOwner) {
                         mc.setScreen(new ConfirmActionScreen(
                                 screen,
                                 Component.translatable("screen.opacui.confirm_title"),
@@ -84,7 +94,25 @@ public class PartyActionBarWidget {
         updateForTab(activeTabIndex);
     }
 
+    public void updateState(boolean localIsOwner, boolean canModeratorPlus, int activeTabIndex, IClientPartyAPI party) {
+        this.localIsOwner = localIsOwner;
+        this.canModeratorPlus = canModeratorPlus;
+        this.party = party;
+        if (btnLeaveDisband != null) {
+            btnLeaveDisband.setMessage(
+                    this.localIsOwner
+                            ? Component.translatable("screen.opacui.disband_party")
+                            : Component.translatable("screen.opacui.leave_party")
+            );
+        }
+        if (btnSendInvite != null) {
+            btnSendInvite.active = this.canModeratorPlus;
+        }
+        updateForTab(activeTabIndex);
+    }
+
     public void updateForTab(int tabIndex) {
+        this.activeTabIndex = tabIndex;
         if (btnSendInvite == null || inviteBox == null) return;
         if (tabIndex == 2) {
             btnSendInvite.setMessage(Component.translatable("screen.opacui.add_ally"));
@@ -130,10 +158,18 @@ public class PartyActionBarWidget {
         return false;
     }
 
-    private void handleSend(Minecraft mc, IClientPartyAPI party, int activeTabIndex, Consumer<Component> showFeedback, Runnable scheduleRefresh) {
+    private void handleSend(Minecraft mc, Consumer<Component> showFeedback, Runnable scheduleRefresh) {
         if (inviteBox == null || party == null) return;
         String name = inviteBox.getValue().trim();
         if (name.isEmpty()) return;
+
+        if (activeTabIndex == 2) {
+            PartyCommands.addAlly(mc, name);
+            showFeedback.accept(Component.translatable("screen.opacui.feedback.ally_added", name));
+            inviteBox.setValue("");
+            scheduleRefresh.run();
+            return;
+        }
 
         boolean isOnline = mc.getConnection() != null && mc.getConnection().getOnlinePlayers().stream()
                 .anyMatch(pi -> pi.getProfile().getName().equalsIgnoreCase(name));
@@ -149,13 +185,8 @@ public class PartyActionBarWidget {
             return;
         }
 
-        if (activeTabIndex == 2) {
-            PartyCommands.addAlly(mc, name);
-            showFeedback.accept(Component.translatable("screen.opacui.feedback.ally_added", name));
-        } else {
-            PartyCommands.invite(mc, name);
-            showFeedback.accept(Component.translatable("screen.opacui.feedback.invited", name));
-        }
+        PartyCommands.invite(mc, name);
+        showFeedback.accept(Component.translatable("screen.opacui.feedback.invited", name));
         inviteBox.setValue("");
         scheduleRefresh.run();
     }
