@@ -40,9 +40,9 @@ import java.util.stream.Collectors;
 public class PartyScreen extends Screen {
 
     private static final Logger LOGGER = LoggerFactory.getLogger("opacui");
-    private static final int CLOTH_BOTTOM_MARGIN = 48;
-    private static final int BAR_Y_OFFSET = 44;
-    private static final int BOTTOM_Y_OFFSET = 20;
+    private static final int CLOTH_BOTTOM_MARGIN = 72;
+    private static final int BAR_Y_OFFSET = 68;
+    private static final int BOTTOM_Y_OFFSET = 44;
 
     private final Screen parent;
 
@@ -213,6 +213,14 @@ public class PartyScreen extends Screen {
             acs.selectedCategoryIndex = savedTabIndex;
         }
         clothScreen.init(mc, width, height - CLOTH_BOTTOM_MARGIN);
+        clothScreen.children().stream()
+                .filter(net.minecraft.client.gui.components.AbstractWidget.class::isInstance)
+                .map(net.minecraft.client.gui.components.AbstractWidget.class::cast)
+                .filter(w -> w.getY() >= height - CLOTH_BOTTOM_MARGIN - 30)
+                .forEach(w -> {
+                    w.visible = false;
+                    w.active = false;
+                });
     }
 
     /** Dynamic in-place list update without full screen tear-down. */
@@ -251,6 +259,14 @@ public class PartyScreen extends Screen {
         renderBackground(g);
 
         if (clothScreen != null) {
+            clothScreen.children().stream()
+                    .filter(net.minecraft.client.gui.components.AbstractWidget.class::isInstance)
+                    .map(net.minecraft.client.gui.components.AbstractWidget.class::cast)
+                    .filter(w -> w.getY() >= height - CLOTH_BOTTOM_MARGIN - 30)
+                    .forEach(w -> {
+                        w.visible = false;
+                        w.active = false;
+                    });
             clothScreen.render(g, mouseX, mouseY, delta);
         } else {
             g.drawCenteredString(font, title, width / 2, 16, 0xFFFFFFFF);
@@ -262,7 +278,7 @@ public class PartyScreen extends Screen {
         }
 
         super.render(g, mouseX, mouseY, delta);
-        suggestionDropdown.render(g, font, minecraft, width / 2 - 150, height - BAR_Y_OFFSET, 198);
+        suggestionDropdown.render(g, font, minecraft, width / 2 - 132, height - BAR_Y_OFFSET, 198);
     }
 
     @Override
@@ -316,7 +332,7 @@ public class PartyScreen extends Screen {
 
     @Override
     public boolean mouseClicked(double x, double y, int btn) {
-        if (suggestionDropdown.mouseClicked(x, y, width / 2 - 150, height - BAR_Y_OFFSET, 198, font, this::populateInputBox)) {
+        if (suggestionDropdown.mouseClicked(x, y, width / 2 - 132, height - BAR_Y_OFFSET, 198, font, this::populateInputBox)) {
             return true;
         }
 

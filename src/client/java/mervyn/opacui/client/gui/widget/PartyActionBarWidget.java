@@ -40,7 +40,7 @@ public class PartyActionBarWidget {
         Minecraft mc = Minecraft.getInstance();
         int barY = height - barYOffset;
 
-        inviteBox = new EditBox(font, width / 2 - 150, barY, 198, 20, Component.translatable("screen.opacui.invite_placeholder"));
+        inviteBox = new EditBox(font, width / 2 - 132, barY, 198, 20, Component.translatable("screen.opacui.invite_placeholder"));
         inviteBox.setMaxLength(32);
         inviteBox.setHint(Component.translatable("screen.opacui.invite_placeholder"));
         inviteBox.setResponder(onTextChange);
@@ -50,7 +50,7 @@ public class PartyActionBarWidget {
                         ? Component.literal("Add Ally")
                         : Component.translatable("screen.opacui.invite"),
                 b -> handleSend(mc, party, activeTabIndex, showFeedback, scheduleRefresh)
-        ).bounds(width / 2 + 50, barY, 60, 20).build();
+        ).bounds(width / 2 + 70, barY, 62, 20).build();
         btnSendInvite.active = canModeratorPlus;
 
         int bottomY = height - bottomYOffset;
@@ -74,12 +74,12 @@ public class PartyActionBarWidget {
                         mc.setScreen(null);
                     }
                 }
-        ).bounds(width / 2 - 155, bottomY, 100, 18).build();
+        ).bounds(width / 2 - 105, bottomY, 100, 20).build();
 
         btnDone = Button.builder(
                 Component.translatable("gui.done"),
                 b -> screen.onClose()
-        ).bounds(width / 2 + 55, bottomY, 100, 18).build();
+        ).bounds(width / 2 + 5, bottomY, 100, 20).build();
 
         updateForTab(activeTabIndex);
     }
