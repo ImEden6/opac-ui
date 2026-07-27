@@ -1,0 +1,40 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+license="LGPL-3.0-only"
+
+[[mods]]
+modId="opacui"
+version="${version}"
+displayName="OPAC UI"
+authors="mervyn"
+description='''
+A client-side GUI addon for Open Parties and Claims, providing a full party management screen.
+'''
+
+[[dependencies.opacui]]
+    modId="forge"
+    mandatory=true
+    versionRange="[47.3.0,)"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.opacui]]
+    modId="minecraft"
+    mandatory=true
+    versionRange="[1.20.1,1.21)"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.opacui]]
+    modId="openpartiesandclaims"
+    mandatory=true
+    versionRange="*"
+    ordering="NONE"
+    side="CLIENT"
+
+[[dependencies.opacui]]
+    modId="cloth_config"
+    mandatory=true
+    versionRange="*"
+    ordering="NONE"
+    side="CLIENT"

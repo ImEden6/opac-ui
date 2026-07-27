@@ -1,0 +1,46 @@
+plugins {
+	id 'architectury-plugin'
+	id 'dev.architectury.loom'
+}
+
+architectury {
+	platformSetupLoomIde()
+	forge()
+}
+
+dependencies {
+	minecraft "com.mojang:minecraft:${project.minecraft_version}"
+	mappings loom.officialMojangMappings()
+	forge "net.minecraftforge:forge:${project.forge_version}"
+
+	// Dependencies provided by user for Forge
+	modImplementation "curse.maven:cloth-config-348521:${project.cloth_config_forge}"
+	modImplementation "curse.maven:open-parties-and-claims-636608:${project.opac_forge}"
+
+	implementation project(path: ":common", configuration: "namedElements")
+}
+
+loom {
+	forge {
+		mixinConfig "opacui.common.mixins.json"
+	}
+}
+
+processResources {
+	def version = project.version
+	inputs.property "version", version
+
+	filesMatching("META-INF/mods.toml") {
+		expand "version": version
+	}
+}
+
+tasks.withType(JavaCompile).configureEach {
+	it.options.release = 17
+}
+
+java {
+	withSourcesJar()
+	sourceCompatibility = JavaVersion.VERSION_17
+	targetCompatibility = JavaVersion.VERSION_17
+}

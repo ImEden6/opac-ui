@@ -1,0 +1,27 @@
+plugins {
+	id 'architectury-plugin'
+	id 'dev.architectury.loom'
+}
+
+architectury {
+	common(rootProject.enabled_platforms.split(","))
+}
+
+dependencies {
+	minecraft "com.mojang:minecraft:${project.minecraft_version}"
+	mappings loom.officialMojangMappings()
+
+	// Mod Dependencies for compilation in common
+	modImplementation "curse.maven:open-parties-and-claims-636608:${project.opac_fabric}"
+	modImplementation "curse.maven:cloth-config-348521:${project.cloth_config_fabric}"
+}
+
+tasks.withType(JavaCompile).configureEach {
+	it.options.release = 17
+}
+
+java {
+	withSourcesJar()
+	sourceCompatibility = JavaVersion.VERSION_17
+	targetCompatibility = JavaVersion.VERSION_17
+}
