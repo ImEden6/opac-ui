@@ -29,27 +29,31 @@ public class PartyHeaderWidget {
                 Component.literal("⚙"),
                 b -> mc.setScreen(new ConfigMenu(screen, screen))
         ).bounds(width - 24, 6, 18, 18)
-                .tooltip(Tooltip.create(Component.literal("OPAC Configuration")))
+                .tooltip(Tooltip.create(Component.translatable("screen.opacui.tooltip.config")))
                 .build();
 
         if (localIsOwner) {
-            partyNameBox = new EditBox(font, width / 2 - 100, 6, 140, 16, Component.literal("Party Name"));
+            partyNameBox = new EditBox(font, width / 2 - 100, 6, 140, 16, Component.translatable("screen.opacui.party_name_hint"));
             partyNameBox.setValue(currentPartyName != null ? currentPartyName : "");
 
             btnRename = Button.builder(
-                    Component.literal("Rename"),
-                    b -> {
-                        String newName = partyNameBox.getValue().trim();
-                        if (!newName.isEmpty()) {
-                            PartyCommands.renameParty(mc, newName);
-                            showFeedback.accept(Component.literal("Renamed party to " + newName));
-                            onActionComplete.run();
-                        }
-                    }
+                    Component.translatable("screen.opacui.rename"),
+                    b -> submitRename(mc, showFeedback, onActionComplete)
             ).bounds(width / 2 + 45, 6, 50, 16).build();
         } else {
             partyNameBox = null;
             btnRename = null;
+        }
+    }
+
+    private void submitRename(Minecraft mc, Consumer<Component> showFeedback, Runnable onActionComplete) {
+        if (partyNameBox != null) {
+            String newName = partyNameBox.getValue().trim();
+            if (!newName.isEmpty()) {
+                PartyCommands.renameParty(mc, newName);
+                showFeedback.accept(Component.translatable("screen.opacui.feedback.renamed", newName));
+                onActionComplete.run();
+            }
         }
     }
 
@@ -73,9 +77,7 @@ public class PartyHeaderWidget {
         if (partyNameBox != null && partyNameBox.isFocused()) {
             String newName = partyNameBox.getValue().trim();
             if (!newName.isEmpty()) {
-                PartyCommands.renameParty(mc, newName);
-                showFeedback.accept(Component.literal("Renamed party to " + newName));
-                onActionComplete.run();
+                submitRename(mc, showFeedback, onActionComplete);
                 return true;
             }
         }

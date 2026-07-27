@@ -40,9 +40,15 @@ public final class AvatarCache {
 
         long now = System.currentTimeMillis();
 
-        // Evict expired entries in REQUESTED_TIMESTAMPS if map grows large
+        // Evict expired entries in cache maps if maps grow large
         if (REQUESTED_TIMESTAMPS.size() > 100) {
             REQUESTED_TIMESTAMPS.entrySet().removeIf(entry -> now - entry.getValue() > CACHE_TTL_MS);
+        }
+        if (CACHE_BY_UUID.size() > 100) {
+            CACHE_BY_UUID.entrySet().removeIf(entry -> now - entry.getValue().timestamp() > CACHE_TTL_MS);
+        }
+        if (CACHE_BY_NAME.size() > 100) {
+            CACHE_BY_NAME.entrySet().removeIf(entry -> now - entry.getValue().timestamp() > CACHE_TTL_MS);
         }
 
         // 1. Check cached UUID (validate TTL)

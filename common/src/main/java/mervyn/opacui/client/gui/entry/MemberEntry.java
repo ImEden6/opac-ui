@@ -68,7 +68,7 @@ public class MemberEntry extends TooltipListEntry<Void> {
             }
         });
         if (downRank != null)
-            btnRankDown.setTooltip(Tooltip.create(Component.literal("Demote to " + downRank.name())));
+            btnRankDown.setTooltip(Tooltip.create(Component.translatable("screen.opacui.tooltip.demote", downRank.name())));
 
         btnRankUp = EntryButton.create(Component.literal("▲"), EntryButton.WIDTH / 2 - 1, EntryButton.HEIGHT, b -> {
             if (upRank != null) {
@@ -78,7 +78,7 @@ public class MemberEntry extends TooltipListEntry<Void> {
             }
         });
         if (upRank != null)
-            btnRankUp.setTooltip(Tooltip.create(Component.literal("Promote to " + upRank.name())));
+            btnRankUp.setTooltip(Tooltip.create(Component.translatable("screen.opacui.tooltip.promote", upRank.name())));
 
         btnKick = EntryButton.create(Component.translatable("screen.opacui.kick"), b -> {
             Screen current = mc.screen;

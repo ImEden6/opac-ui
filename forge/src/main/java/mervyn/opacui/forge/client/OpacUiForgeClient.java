@@ -1,5 +1,6 @@
 package mervyn.opacui.forge.client;
 
+import mervyn.opacui.OpacUiMod;
 import mervyn.opacui.client.gui.PartyScreen;
 import mervyn.opacui.client.keys.KeyBindings;
 import mervyn.opacui.forge.platform.ForgePlatformHelper;
@@ -10,7 +11,7 @@ import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
-@Mod.EventBusSubscriber(modid = "opacui", value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.MOD)
+@Mod.EventBusSubscriber(modid = OpacUiMod.MOD_ID, value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.MOD)
 public class OpacUiForgeClient {
 
     public static void init() {
@@ -24,7 +25,7 @@ public class OpacUiForgeClient {
         }
     }
 
-    @Mod.EventBusSubscriber(modid = "opacui", value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.FORGE)
+    @Mod.EventBusSubscriber(modid = OpacUiMod.MOD_ID, value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.FORGE)
     public static class ForgeForgeEvents {
         @SubscribeEvent
         public static void onClientTick(TickEvent.ClientTickEvent event) {

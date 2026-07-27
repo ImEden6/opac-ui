@@ -47,7 +47,7 @@ public class PartyActionBarWidget {
 
         btnSendInvite = Button.builder(
                 activeTabIndex == 2
-                        ? Component.literal("Add Ally")
+                        ? Component.translatable("screen.opacui.add_ally")
                         : Component.translatable("screen.opacui.invite"),
                 b -> handleSend(mc, party, activeTabIndex, showFeedback, scheduleRefresh)
         ).bounds(width / 2 + 70, barY, 62, 20).build();
@@ -87,8 +87,8 @@ public class PartyActionBarWidget {
     public void updateForTab(int tabIndex) {
         if (btnSendInvite == null || inviteBox == null) return;
         if (tabIndex == 2) {
-            btnSendInvite.setMessage(Component.literal("Add Ally"));
-            inviteBox.setHint(Component.literal("Enter player name to ally..."));
+            btnSendInvite.setMessage(Component.translatable("screen.opacui.add_ally"));
+            inviteBox.setHint(Component.translatable("screen.opacui.ally_placeholder"));
         } else {
             btnSendInvite.setMessage(Component.translatable("screen.opacui.invite"));
             inviteBox.setHint(Component.translatable("screen.opacui.invite_placeholder"));

@@ -39,21 +39,24 @@ public class AllyEntry extends TooltipListEntry<Void> {
 
         Minecraft mc = Minecraft.getInstance();
         btnUnally = Button.builder(Component.translatable("screen.opacui.unally"), b -> {
-            String defaultName = ally.getAllyDefaultName() != null ? ally.getAllyDefaultName() : "";
-            String ownerName = parseOwnerName(defaultName);
+            String ownerName = resolveOwnerName();
             PartyCommands.removeAlly(mc, ownerName);
+            String defaultName = ally.getAllyDefaultName() != null ? ally.getAllyDefaultName() : "";
             String displayName = (ally.getAllyName() != null && !ally.getAllyName().isEmpty()) ? ally.getAllyName() : defaultName;
             onAction.accept(Component.translatable("screen.opacui.feedback.unallied", displayName));
         }).size(BTN_W, BTN_H).build();
         btnUnally.active = canModify;
     }
 
+    private String resolveOwnerName() {
+        String defaultName = ally.getAllyDefaultName() != null ? ally.getAllyDefaultName() : "";
+        return parseOwnerName(defaultName);
+    }
+
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button == 0 && Minecraft.getInstance().screen instanceof mervyn.opacui.client.gui.PartyScreen ps) {
-            String defaultName = ally.getAllyDefaultName() != null ? ally.getAllyDefaultName() : "";
-            String ownerName = parseOwnerName(defaultName);
-            ps.populateInputBox(ownerName);
+            ps.populateInputBox(resolveOwnerName());
         }
         return super.mouseClicked(mouseX, mouseY, button);
     }
@@ -76,7 +79,7 @@ public class AllyEntry extends TooltipListEntry<Void> {
     @Override
     public void render(GuiGraphics g, int index, int y, int x, int entryWidth, int entryHeight, int mouseX, int mouseY, boolean isHovered, float delta) {
         Minecraft mc = Minecraft.getInstance();
-        String display = ally.getAllyName().isEmpty() ? ally.getAllyDefaultName() : ally.getAllyName();
+        String display = (ally.getAllyName() != null && !ally.getAllyName().isEmpty()) ? ally.getAllyName() : ally.getAllyDefaultName();
         g.drawString(mc.font, "Allied: " + display, x + 4, y + (entryHeight - 8) / 2, 0xFF88FFAA, false);
 
         if (canModify) {

@@ -259,14 +259,6 @@ public class PartyScreen extends Screen {
         renderBackground(g);
 
         if (clothScreen != null) {
-            for (var child : clothScreen.children()) {
-                if (child instanceof net.minecraft.client.gui.components.AbstractWidget w) {
-                    if (w.visible && w.getY() >= height - CLOTH_BOTTOM_MARGIN - 30) {
-                        w.visible = false;
-                        w.active = false;
-                    }
-                }
-            }
             clothScreen.render(g, mouseX, mouseY, delta);
         } else {
             g.drawCenteredString(font, title, width / 2, 16, 0xFFFFFFFF);

@@ -41,5 +41,13 @@
   "screen.opacui.empty_allies": "No allied parties",
 
   "screen.opacui.tooltip.kick": "Kick this member from the party",
-  "screen.opacui.tooltip.transfer": "Transfer party ownership"
+  "screen.opacui.tooltip.transfer": "Transfer party ownership",
+  "screen.opacui.tooltip.config": "OPAC Configuration",
+  "screen.opacui.party_name_hint": "Party Name",
+  "screen.opacui.rename": "Rename",
+  "screen.opacui.feedback.renamed": "Renamed party to %s",
+  "screen.opacui.add_ally": "Add Ally",
+  "screen.opacui.ally_placeholder": "Enter player name to ally...",
+  "screen.opacui.tooltip.demote": "Demote to %s",
+  "screen.opacui.tooltip.promote": "Promote to %s"
 }
