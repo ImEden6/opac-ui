@@ -38,7 +38,7 @@ public final class PartyCommands {
 
     /** Sends a party invite to the given player name. Requires MODERATOR+. */
     public static void invite(Minecraft mc, String playerName) {
-        send(mc, PREFIX + " member invite " + playerName);
+        send(mc, PREFIX + " member invite " + sanitizeName(playerName));
     }
 
     /**
@@ -46,7 +46,7 @@ public final class PartyCommands {
      * Requires MODERATOR+.
      */
     public static void kick(Minecraft mc, String username) {
-        send(mc, PREFIX + " member kick " + username);
+        send(mc, PREFIX + " member kick " + sanitizeName(username));
     }
 
     /**
@@ -54,7 +54,7 @@ public final class PartyCommands {
      * (MEMBER, CLAIMER, MODERATOR, ADMIN). Requires ADMIN+.
      */
     public static void setRank(Minecraft mc, String rank, String username) {
-        send(mc, PREFIX + " member rank " + rank + " " + username);
+        send(mc, PREFIX + " member rank " + sanitizeName(rank) + " " + sanitizeName(username));
     }
 
     /**
@@ -62,7 +62,7 @@ public final class PartyCommands {
      * Only the current owner can call this.
      */
     public static void transferOwnership(Minecraft mc, String username) {
-        send(mc, PREFIX + " transfer " + username + " confirm");
+        send(mc, PREFIX + " transfer " + sanitizeName(username) + " confirm");
     }
 
     // ── Allies ────────────────────────────────────────────────────────────
@@ -72,7 +72,7 @@ public final class PartyCommands {
      * allied. Requires MODERATOR+.
      */
     public static void addAlly(Minecraft mc, String playerName) {
-        send(mc, PREFIX + " ally add " + playerName);
+        send(mc, PREFIX + " ally add " + sanitizeName(playerName));
     }
 
     /**
@@ -80,10 +80,15 @@ public final class PartyCommands {
      * Requires MODERATOR+.
      */
     public static void removeAlly(Minecraft mc, String ownerName) {
-        send(mc, PREFIX + " ally remove " + ownerName);
+        send(mc, PREFIX + " ally remove " + sanitizeName(ownerName));
     }
 
     // ── Internal ──────────────────────────────────────────────────────────
+
+    private static String sanitizeName(String input) {
+        if (input == null) return "";
+        return input.replaceAll("[\\r\\n\\t\\s]", "");
+    }
 
     private static void send(Minecraft mc, String command) {
         if (mc.player == null || mc.player.connection == null) return;
