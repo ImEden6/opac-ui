@@ -65,6 +65,7 @@ public class PartyScreen extends Screen {
     private int lastInviteCount;
     private int lastAllyCount;
     private boolean lastIsOwner;
+    private PartyMemberRank lastLocalRank;
     private int actionRefreshTicks;
 
     public PartyScreen(Screen parent) {
@@ -100,6 +101,7 @@ public class PartyScreen extends Screen {
         lastInviteCount = party != null ? party.getInviteCount() : 0;
         lastAllyCount = party != null ? party.getAllyCount() : 0;
         lastIsOwner = localIsOwner;
+        lastLocalRank = localMember != null ? localMember.getRank() : PartyMemberRank.MEMBER;
 
         if (party == null) {
             initNoParty();
@@ -309,18 +311,20 @@ public class PartyScreen extends Screen {
         UUID localUUID = mc.player == null ? null : mc.player.getUUID();
         IPartyMemberAPI localMember = (party != null && localUUID != null) ? party.getMemberInfo(localUUID) : null;
         boolean localIsOwner = localMember != null && localMember.isOwner();
+        PartyMemberRank localRank = localMember != null ? localMember.getRank() : PartyMemberRank.MEMBER;
 
         boolean isPresent = party != null;
         int memberCount = party != null ? party.getMemberCount() : 0;
         int inviteCount = party != null ? party.getInviteCount() : 0;
         int allyCount = party != null ? party.getAllyCount() : 0;
 
-        if (isPresent != lastPartyPresent || memberCount != lastMemberCount || inviteCount != lastInviteCount || allyCount != lastAllyCount || localIsOwner != lastIsOwner) {
+        if (isPresent != lastPartyPresent || memberCount != lastMemberCount || inviteCount != lastInviteCount || allyCount != lastAllyCount || localIsOwner != lastIsOwner || localRank != lastLocalRank) {
             lastPartyPresent = isPresent;
             lastMemberCount = memberCount;
             lastInviteCount = inviteCount;
             lastAllyCount = allyCount;
             lastIsOwner = localIsOwner;
+            lastLocalRank = localRank;
             init();
             return;
         }

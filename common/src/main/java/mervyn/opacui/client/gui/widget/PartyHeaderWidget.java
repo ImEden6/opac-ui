@@ -53,6 +53,7 @@ public class PartyHeaderWidget {
             String newName = partyNameBox.getValue().trim();
             if (!newName.isEmpty() && !newName.equals(currentPartyName)) {
                 PartyCommands.renameParty(mc, newName);
+                currentPartyName = newName;
                 showFeedback.accept(Component.translatable("screen.opacui.feedback.renamed", newName));
                 onActionComplete.run();
             }
