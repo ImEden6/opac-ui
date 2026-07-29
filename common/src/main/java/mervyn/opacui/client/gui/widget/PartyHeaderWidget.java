@@ -20,9 +20,11 @@ public class PartyHeaderWidget {
     private EditBox partyNameBox;
     private Button btnRename;
     private Button btnConfigGear;
+    private String currentPartyName;
 
     public void init(Screen screen, Font font, int width, boolean localIsOwner, String currentPartyName, Consumer<Component> showFeedback, Runnable onActionComplete) {
         Minecraft mc = Minecraft.getInstance();
+        this.currentPartyName = currentPartyName;
 
         // OPAC Config Gear Button in top-right corner
         btnConfigGear = Button.builder(
@@ -49,7 +51,7 @@ public class PartyHeaderWidget {
     private void submitRename(Minecraft mc, Consumer<Component> showFeedback, Runnable onActionComplete) {
         if (partyNameBox != null) {
             String newName = partyNameBox.getValue().trim();
-            if (!newName.isEmpty()) {
+            if (!newName.isEmpty() && !newName.equals(currentPartyName)) {
                 PartyCommands.renameParty(mc, newName);
                 showFeedback.accept(Component.translatable("screen.opacui.feedback.renamed", newName));
                 onActionComplete.run();

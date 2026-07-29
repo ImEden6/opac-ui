@@ -163,18 +163,18 @@ public class PartyActionBarWidget {
         String name = inviteBox.getValue().trim();
         if (name.isEmpty()) return;
 
+        boolean isOnline = mc.getConnection() != null && mc.getConnection().getOnlinePlayers().stream()
+                .anyMatch(pi -> pi.getProfile().getName().equalsIgnoreCase(name));
+        if (!isOnline) {
+            showFeedback.accept(Component.translatable("screen.opacui.feedback.player_not_online", name));
+            return;
+        }
+
         if (activeTabIndex == 2) {
             PartyCommands.addAlly(mc, name);
             showFeedback.accept(Component.translatable("screen.opacui.feedback.ally_added", name));
             inviteBox.setValue("");
             scheduleRefresh.run();
-            return;
-        }
-
-        boolean isOnline = mc.getConnection() != null && mc.getConnection().getOnlinePlayers().stream()
-                .anyMatch(pi -> pi.getProfile().getName().equalsIgnoreCase(name));
-        if (!isOnline) {
-            showFeedback.accept(Component.translatable("screen.opacui.feedback.player_not_online", name));
             return;
         }
 

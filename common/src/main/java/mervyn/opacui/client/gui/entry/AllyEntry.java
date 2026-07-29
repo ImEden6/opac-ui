@@ -30,20 +30,20 @@ public class AllyEntry extends TooltipListEntry<Void> {
     private final IClientPartyAllyInfoAPI ally;
     private final boolean canModify;
     private final Button btnUnally;
+    private final String displayName;
 
     @SuppressWarnings("deprecation")
     public AllyEntry(IClientPartyAllyInfoAPI ally, boolean canModify, Consumer<Component> onAction) {
-        super(Component.empty(), null);
+        super(Component.literal((ally.getAllyName() != null && !ally.getAllyName().isEmpty()) ? ally.getAllyName() : ally.getAllyDefaultName()), null);
         this.ally = ally;
         this.canModify = canModify;
+        this.displayName = (ally.getAllyName() != null && !ally.getAllyName().isEmpty()) ? ally.getAllyName() : ally.getAllyDefaultName();
 
         Minecraft mc = Minecraft.getInstance();
         btnUnally = Button.builder(Component.translatable("screen.opacui.unally"), b -> {
             String ownerName = resolveOwnerName();
             PartyCommands.removeAlly(mc, ownerName);
-            String defaultName = ally.getAllyDefaultName() != null ? ally.getAllyDefaultName() : "";
-            String displayName = (ally.getAllyName() != null && !ally.getAllyName().isEmpty()) ? ally.getAllyName() : defaultName;
-            onAction.accept(Component.translatable("screen.opacui.feedback.unallied", displayName));
+            onAction.accept(Component.translatable("screen.opacui.feedback.unallied", this.displayName));
         }).size(BTN_W, BTN_H).build();
         btnUnally.active = canModify;
     }
@@ -79,8 +79,7 @@ public class AllyEntry extends TooltipListEntry<Void> {
     @Override
     public void render(GuiGraphics g, int index, int y, int x, int entryWidth, int entryHeight, int mouseX, int mouseY, boolean isHovered, float delta) {
         Minecraft mc = Minecraft.getInstance();
-        String display = (ally.getAllyName() != null && !ally.getAllyName().isEmpty()) ? ally.getAllyName() : ally.getAllyDefaultName();
-        g.drawString(mc.font, "Allied: " + display, x + 4, y + (entryHeight - 8) / 2, 0xFF88FFAA, false);
+        g.drawString(mc.font, "Allied: " + displayName, x + 4, y + (entryHeight - 8) / 2, 0xFF88FFAA, false);
 
         if (canModify) {
             int btnY = y + (entryHeight - BTN_H) / 2;

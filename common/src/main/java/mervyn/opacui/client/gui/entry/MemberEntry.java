@@ -51,7 +51,7 @@ public class MemberEntry extends TooltipListEntry<Void> {
             boolean isSelf,
             boolean isOnline,
             Consumer<Component> onAction) {
-        super(Component.empty(), null);
+        super(Component.literal(member.getUsername()), null);
         this.member = member;
         this.isOnline = isOnline;
 

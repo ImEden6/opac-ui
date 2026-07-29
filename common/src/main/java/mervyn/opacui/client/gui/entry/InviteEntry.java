@@ -31,7 +31,7 @@ public class InviteEntry extends TooltipListEntry<Void> {
 
     @SuppressWarnings("deprecation")
     public InviteEntry(IPartyPlayerInfoAPI invite, Consumer<Component> onAction) {
-        super(Component.empty(), null);
+        super(Component.literal(invite.getUsername()), null);
         this.invite = invite;
 
         Minecraft mc = Minecraft.getInstance();
