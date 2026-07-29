@@ -1,11 +1,20 @@
 plugins {
 	id 'architectury-plugin'
 	id 'dev.architectury.loom'
+	id 'com.github.johnrengelman.shadow'
 }
 
 architectury {
 	platformSetupLoomIde()
 	fabric()
+}
+
+configurations {
+	common
+	shadowCommon
+	compileClasspath.extendsFrom common
+	runtimeClasspath.extendsFrom common
+	developmentFabric.extendsFrom common
 }
 
 dependencies {
@@ -19,7 +28,8 @@ dependencies {
 	modImplementation "curse.maven:open-parties-and-claims-636608:${project.opac_fabric}"
 	modImplementation "curse.maven:cloth-config-348521:${project.cloth_config_fabric}"
 
-	implementation project(path: ":common", configuration: "namedElements")
+	common(project(path: ":common", configuration: "namedElements")) { transitive false }
+	shadowCommon(project(path: ":common", configuration: "transformProductionFabric")) { transitive false }
 }
 
 processResources {
@@ -29,6 +39,21 @@ processResources {
 	filesMatching("fabric.mod.json") {
 		expand "version": version
 	}
+}
+
+shadowJar {
+	configurations = [project.configurations.shadowCommon]
+	archiveClassifier.set("dev-shadow")
+}
+
+remapJar {
+	input.set shadowJar.archiveFile
+	dependsOn shadowJar
+	archiveClassifier.set(null)
+}
+
+jar {
+	archiveClassifier.set("dev")
 }
 
 tasks.withType(JavaCompile).configureEach {

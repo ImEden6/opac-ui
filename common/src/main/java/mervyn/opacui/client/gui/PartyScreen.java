@@ -64,6 +64,8 @@ public class PartyScreen extends Screen {
     private int lastMemberCount;
     private int lastInviteCount;
     private int lastAllyCount;
+    private boolean lastIsOwner;
+    private PartyMemberRank lastLocalRank;
     private int actionRefreshTicks;
 
     public PartyScreen(Screen parent) {
@@ -89,10 +91,17 @@ public class PartyScreen extends Screen {
         clothScreen = null;
 
         IClientPartyAPI party = getParty();
+        Minecraft mc = Minecraft.getInstance();
+        UUID localUUID = mc.player == null ? null : mc.player.getUUID();
+        IPartyMemberAPI localMember = (party != null && localUUID != null) ? party.getMemberInfo(localUUID) : null;
+        boolean localIsOwner = localMember != null && localMember.isOwner();
+
         lastPartyPresent = party != null;
         lastMemberCount = party != null ? party.getMemberCount() : 0;
         lastInviteCount = party != null ? party.getInviteCount() : 0;
         lastAllyCount = party != null ? party.getAllyCount() : 0;
+        lastIsOwner = localIsOwner;
+        lastLocalRank = localMember != null ? localMember.getRank() : PartyMemberRank.MEMBER;
 
         if (party == null) {
             initNoParty();
@@ -246,8 +255,14 @@ public class PartyScreen extends Screen {
         boolean localIsOwner = localMember != null && localMember.isOwner();
         boolean canModeratorPlus = localRank.ordinal() >= PartyMemberRank.MODERATOR.ordinal();
 
+        if (localIsOwner != lastIsOwner) {
+            lastIsOwner = localIsOwner;
+            init();
+            return;
+        }
+
         buildClothScreen(party, localUUID, localRank, localIsOwner, canModeratorPlus);
-        actionBarWidget.updateForTab(savedTabIndex);
+        actionBarWidget.updateState(localIsOwner, canModeratorPlus, savedTabIndex, party);
     }
 
     // ─────────────────────────────────────────────────────────────────────
@@ -256,7 +271,7 @@ public class PartyScreen extends Screen {
 
     @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float delta) {
-        renderBackground(g);
+        g.fill(0, 0, width, height, 0x90101010);
 
         if (clothScreen != null) {
             clothScreen.render(g, mouseX, mouseY, delta);
@@ -292,17 +307,25 @@ public class PartyScreen extends Screen {
         }
 
         IClientPartyAPI party = getParty();
+        Minecraft mc = Minecraft.getInstance();
+        UUID localUUID = mc.player == null ? null : mc.player.getUUID();
+        IPartyMemberAPI localMember = (party != null && localUUID != null) ? party.getMemberInfo(localUUID) : null;
+        boolean localIsOwner = localMember != null && localMember.isOwner();
+        PartyMemberRank localRank = localMember != null ? localMember.getRank() : PartyMemberRank.MEMBER;
+
         boolean isPresent = party != null;
         int memberCount = party != null ? party.getMemberCount() : 0;
         int inviteCount = party != null ? party.getInviteCount() : 0;
         int allyCount = party != null ? party.getAllyCount() : 0;
 
-        if (isPresent != lastPartyPresent || memberCount != lastMemberCount || inviteCount != lastInviteCount || allyCount != lastAllyCount) {
+        if (isPresent != lastPartyPresent || memberCount != lastMemberCount || inviteCount != lastInviteCount || allyCount != lastAllyCount || localIsOwner != lastIsOwner || localRank != lastLocalRank) {
             lastPartyPresent = isPresent;
             lastMemberCount = memberCount;
             lastInviteCount = inviteCount;
             lastAllyCount = allyCount;
-            refreshPartyLists();
+            lastIsOwner = localIsOwner;
+            lastLocalRank = localRank;
+            init();
             return;
         }
 
@@ -329,9 +352,20 @@ public class PartyScreen extends Screen {
         }
 
         if (clothScreen != null && y < height - CLOTH_BOTTOM_MARGIN) {
-            return clothScreen.mouseClicked(x, y, btn) || super.mouseClicked(x, y, btn);
+            boolean handled = clothScreen.mouseClicked(x, y, btn);
+            if (handled) {
+                releaseOuterTextFocus();
+            }
+            return handled || super.mouseClicked(x, y, btn);
         }
         return super.mouseClicked(x, y, btn);
+    }
+
+    /** Releases focus from PartyScreen's own text boxes so keystrokes route into clothScreen. */
+    private void releaseOuterTextFocus() {
+        setFocused(null);
+        if (headerWidget.getPartyNameBox() != null) headerWidget.getPartyNameBox().setFocused(false);
+        if (actionBarWidget.getInviteBox() != null) actionBarWidget.getInviteBox().setFocused(false);
     }
 
     @Override

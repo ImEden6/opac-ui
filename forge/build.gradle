@@ -1,11 +1,20 @@
 plugins {
 	id 'architectury-plugin'
 	id 'dev.architectury.loom'
+	id 'com.github.johnrengelman.shadow'
 }
 
 architectury {
 	platformSetupLoomIde()
 	forge()
+}
+
+configurations {
+	common
+	shadowCommon
+	compileClasspath.extendsFrom common
+	runtimeClasspath.extendsFrom common
+	developmentForge.extendsFrom common
 }
 
 dependencies {
@@ -17,7 +26,8 @@ dependencies {
 	modImplementation "curse.maven:cloth-config-348521:${project.cloth_config_forge}"
 	modImplementation "curse.maven:open-parties-and-claims-636608:${project.opac_forge}"
 
-	implementation project(path: ":common", configuration: "namedElements")
+	common(project(path: ":common", configuration: "namedElements")) { transitive false }
+	shadowCommon(project(path: ":common", configuration: "transformProductionForge")) { transitive false }
 }
 
 loom {
@@ -33,6 +43,22 @@ processResources {
 	filesMatching("META-INF/mods.toml") {
 		expand "version": version
 	}
+}
+
+shadowJar {
+	exclude "fabric.mod.json"
+	configurations = [project.configurations.shadowCommon]
+	archiveClassifier.set("dev-shadow")
+}
+
+remapJar {
+	input.set shadowJar.archiveFile
+	dependsOn shadowJar
+	archiveClassifier.set(null)
+}
+
+jar {
+	archiveClassifier.set("dev")
 }
 
 tasks.withType(JavaCompile).configureEach {
