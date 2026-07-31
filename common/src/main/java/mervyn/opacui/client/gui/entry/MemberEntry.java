@@ -115,10 +115,13 @@ public class MemberEntry extends TooltipListEntry<Void> {
         btnTransfer.setTooltip(Tooltip.create(Component.translatable("screen.opacui.tooltip.transfer")));
 
         // Visibility rules:
-        // rank buttons: ADMIN+ only, not on self, not on owner
-        boolean canRank = !isSelf && !member.isOwner() && localRank.ordinal() >= PartyMemberRank.ADMIN.ordinal();
+        // rank buttons: ADMIN+ only, not on self, not on owner, target rank below local rank
+        // (unless owner, who bypasses the rank comparison server-side)
+        boolean rankBelowLocal = localIsOwner || member.getRank().ordinal() < localRank.ordinal();
+        boolean canRank = !isSelf && !member.isOwner() && localRank.ordinal() >= PartyMemberRank.ADMIN.ordinal() && rankBelowLocal;
         btnRankDown.active = canRank && member.getRank().ordinal() > PartyMemberRank.MEMBER.ordinal();
-        btnRankUp.active = canRank && member.getRank().ordinal() < PartyMemberRank.ADMIN.ordinal();
+        btnRankUp.active = canRank && member.getRank().ordinal() < PartyMemberRank.ADMIN.ordinal()
+                && (localIsOwner || upRank.ordinal() < localRank.ordinal());
         btnRankDown.visible = canRank;
         btnRankUp.visible = canRank;
 

@@ -46,6 +46,7 @@
   "screen.opacui.party_name_hint": "Party Name",
   "screen.opacui.rename": "Rename",
   "screen.opacui.feedback.renamed": "Renamed party to %s",
+  "screen.opacui.feedback.invalid_party_name": "Party name contains invalid characters or is too long",
   "screen.opacui.add_ally": "Add Ally",
   "screen.opacui.ally_placeholder": "Enter player name to ally...",
   "screen.opacui.tooltip.demote": "Demote to %s",
