@@ -28,9 +28,9 @@ bin/
 
 *.DS_Store
 
-# fabric
+# minecraft dev run dirs (fabric/forge, including custom multi-client/server ones)
 
-run/
+run*/
 
 # java
 

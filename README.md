@@ -6,6 +6,7 @@ A Fabric 1.20.1 client-side mod that adds an in-game party management GUI for [O
 
 - Minecraft 1.20.1 (Fabric)
 - Fabric API
+- Forge Config API Port (Fabric only — required by Open Parties and Claims' Fabric build)
 - Open Parties and Claims (≥ 1.20.1)
 - Cloth Config API (≥ 11.x)
 

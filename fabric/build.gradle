@@ -9,6 +9,39 @@ architectury {
 	fabric()
 }
 
+loom {
+	runs {
+		// Second client instance for local multiplayer testing (party/ally features
+		// need two distinct players). Own run dir + offline username so it doesn't
+		// collide with the default `client` run's account or files.
+		client2 {
+			client()
+			name "Fabric Client 2"
+			source sourceSets.main
+			runDir "run2"
+			programArgs "--username", "Tester2"
+		}
+		server {
+			runDir "run-server"
+		}
+	}
+}
+
+repositories {
+	maven {
+		url = "https://api.modrinth.com/maven"
+		content {
+			includeGroup "maven.modrinth"
+		}
+	}
+	maven {
+		url = "https://maven.shedaniel.me/"
+		content {
+			includeGroup "me.shedaniel.cloth"
+		}
+	}
+}
+
 configurations {
 	common
 	shadowCommon
@@ -27,6 +60,11 @@ dependencies {
 	// Dependencies
 	modImplementation "curse.maven:open-parties-and-claims-636608:${project.opac_fabric}"
 	modImplementation "curse.maven:cloth-config-348521:${project.cloth_config_fabric}"
+	// OPAC's Fabric build needs Forge Config API Port (its config system, ported to Fabric)
+	modImplementation "maven.modrinth:forge-config-api-port:v8.0.3-1.20.1-Fabric"
+	// Cloth Config needs its own basic-math lib (Rectangle/Point); curse.maven jars carry
+	// no dependency metadata so it never gets pulled in transitively
+	implementation "me.shedaniel.cloth:basic-math:0.6.1"
 
 	common(project(path: ":common", configuration: "namedElements")) { transitive false }
 	shadowCommon(project(path: ":common", configuration: "transformProductionFabric")) { transitive false }
