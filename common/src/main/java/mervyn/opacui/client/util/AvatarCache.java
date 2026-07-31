@@ -1,7 +1,6 @@
 package mervyn.opacui.client.util;
 
 import com.mojang.authlib.GameProfile;
-import com.mojang.authlib.minecraft.MinecraftProfileTexture;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.DefaultPlayerSkin;
 import net.minecraft.client.resources.SkinManager;
@@ -35,8 +34,12 @@ public final class AvatarCache {
         REQUESTED_TIMESTAMPS.clear();
     }
 
+    private static ResourceLocation getDefaultSkinLocation(UUID uuid) {
+        return DefaultPlayerSkin.get(uuid != null ? uuid : UUID.randomUUID()).texture();
+    }
+
     public static ResourceLocation getSkin(Minecraft mc, UUID uuid, String username) {
-        if (mc == null) return DefaultPlayerSkin.getDefaultSkin();
+        if (mc == null) return getDefaultSkinLocation(uuid);
 
         long now = System.currentTimeMillis();
 
@@ -79,27 +82,35 @@ public final class AvatarCache {
         }
 
         if (uuid == null && (username == null || username.isEmpty())) {
-            return DefaultPlayerSkin.getDefaultSkin();
+            return getDefaultSkinLocation(uuid);
         }
 
         GameProfile profile = new GameProfile(uuid, username);
 
-        // 3. Request asynchronously via SkinManager if not requested recently
+        // 3. Request via SkinManager if not requested recently
         SkinManager skinManager = mc.getSkinManager();
         Object key = uuid != null ? uuid : username.toLowerCase();
 
         Long lastReq = REQUESTED_TIMESTAMPS.get(key);
         if (lastReq == null || now - lastReq > CACHE_TTL_MS) {
             REQUESTED_TIMESTAMPS.put(key, now);
-            skinManager.registerSkins(profile, (type, location, profileTexture) -> {
-                if (type == MinecraftProfileTexture.Type.SKIN) {
-                    CachedSkin entry = new CachedSkin(location, System.currentTimeMillis());
-                    if (uuid != null) CACHE_BY_UUID.put(uuid, entry);
-                    if (username != null && !username.isEmpty()) CACHE_BY_NAME.put(username.toLowerCase(), entry);
-                }
-            }, true);
+            try {
+                var skinSupplier = skinManager.getOrLoad(profile);
+                skinSupplier.thenAccept(skin -> {
+                    if (skin != null) {
+                        ResourceLocation loc = skin.texture();
+                        CachedSkin entry = new CachedSkin(loc, System.currentTimeMillis());
+                        if (uuid != null) CACHE_BY_UUID.put(uuid, entry);
+                        if (username != null && !username.isEmpty()) CACHE_BY_NAME.put(username.toLowerCase(), entry);
+                    }
+                });
+            } catch (Exception ignored) {}
         }
 
-        return skinManager.getInsecureSkinLocation(profile);
+        try {
+            return skinManager.getInsecureSkin(profile).texture();
+        } catch (Exception e) {
+            return getDefaultSkinLocation(uuid);
+        }
     }
 }

@@ -126,7 +126,7 @@ public class PartyActionBarWidget {
     public void populateInputBox(String text) {
         if (inviteBox != null) {
             inviteBox.setValue(text);
-            inviteBox.moveCursorToEnd();
+            inviteBox.moveCursorToEnd(false);
         }
     }
 

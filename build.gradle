@@ -24,6 +24,14 @@ subprojects {
 	repositories {
 		mavenCentral()
 		maven {
+			name = 'NeoForged'
+			url = 'https://maven.neoforged.net/releases'
+		}
+		maven {
+			name = 'Forge'
+			url = 'https://maven.minecraftforge.net/'
+		}
+		maven {
 			url = "https://cursemaven.com"
 			content {
 				includeGroup "curse.maven"

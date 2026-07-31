@@ -41,7 +41,7 @@ public class ConfirmActionScreen extends Screen {
 
     @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float delta) {
-        renderBackground(g);
+        renderBackground(g, mouseX, mouseY, delta);
 
         var lines = font.split(message, 220);
         int lineCount = Math.max(1, lines.size());

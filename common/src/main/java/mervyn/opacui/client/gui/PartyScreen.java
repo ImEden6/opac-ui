@@ -378,11 +378,11 @@ public class PartyScreen extends Screen {
     }
 
     @Override
-    public boolean mouseScrolled(double x, double y, double delta) {
-        if (clothScreen != null && y < height - CLOTH_BOTTOM_MARGIN) {
-            return clothScreen.mouseScrolled(x, y, delta);
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        if (clothScreen != null && mouseY < height - CLOTH_BOTTOM_MARGIN) {
+            return clothScreen.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
         }
-        return super.mouseScrolled(x, y, delta);
+        return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
     }
 
     @Override

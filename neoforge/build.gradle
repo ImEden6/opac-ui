@@ -6,7 +6,7 @@ plugins {
 
 architectury {
 	platformSetupLoomIde()
-	forge()
+	neoForge()
 }
 
 configurations {
@@ -14,33 +14,23 @@ configurations {
 	shadowCommon
 	compileClasspath.extendsFrom common
 	runtimeClasspath.extendsFrom common
-	developmentForge.extendsFrom common
+	developmentNeoForge.extendsFrom common
 }
 
 dependencies {
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
 	mappings loom.officialMojangMappings()
-	forge "net.minecraftforge:forge:${project.forge_version}"
-
-	// Dependencies provided by user for Forge
-	modImplementation "curse.maven:cloth-config-348521:${project.cloth_config_forge}"
-	modImplementation "curse.maven:open-parties-and-claims-636608:${project.opac_forge}"
+	neoForge "net.neoforged:neoforge:${project.neoforge_version}"
 
 	common(project(path: ":common", configuration: "namedElements")) { transitive false }
-	shadowCommon(project(path: ":common", configuration: "transformProductionForge")) { transitive false }
-}
-
-loom {
-	forge {
-		mixinConfig "opacui.common.mixins.json"
-	}
+	shadowCommon(project(path: ":common", configuration: "transformProductionNeoForge")) { transitive false }
 }
 
 processResources {
 	def version = project.version
 	inputs.property "version", version
 
-	filesMatching("META-INF/mods.toml") {
+	filesMatching("META-INF/neoforge.mods.toml") {
 		expand "version": version
 	}
 }
