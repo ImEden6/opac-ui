@@ -1,6 +1,6 @@
 # opac-ui
 
-A Fabric 1.20.1 client-side mod that adds an in-game party management GUI for [Open Parties and Claims](https://github.com/thexaero/open-parties-and-claims) using Cloth Config's tabbed-list UI.
+A client-side mod that adds an in-game party management GUI for [Open Parties and Claims](https://github.com/thexaero/open-parties-and-claims) using Cloth Config's tabbed-list UI.
 
 ## Requirements
 
