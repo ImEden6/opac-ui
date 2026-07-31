@@ -10,10 +10,21 @@ architectury {
 }
 
 subprojects {
+	apply plugin: 'java'
 	apply plugin: 'maven-publish'
 
 	version = rootProject.mod_version
 	group = rootProject.maven_group
+
+	java {
+		toolchain {
+			languageVersion = JavaLanguageVersion.of(21)
+		}
+	}
+
+	tasks.withType(JavaCompile).configureEach {
+		options.release = 21
+	}
 
 	afterEvaluate {
 		base {
