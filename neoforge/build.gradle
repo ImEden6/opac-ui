@@ -22,6 +22,10 @@ dependencies {
 	mappings loom.officialMojangMappings()
 	neoForge "net.neoforged:neoforge:${project.neoforge_version}"
 
+	// Dependencies for NeoForge
+	modImplementation "curse.maven:cloth-config-348521:${project.cloth_config_neoforge}"
+	modImplementation "curse.maven:open-parties-and-claims-636608:${project.opac_neoforge}"
+
 	common(project(path: ":common", configuration: "namedElements")) { transitive false }
 	shadowCommon(project(path: ":common", configuration: "transformProductionNeoForge")) { transitive false }
 }
