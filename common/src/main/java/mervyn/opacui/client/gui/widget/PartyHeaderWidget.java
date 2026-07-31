@@ -11,11 +11,15 @@ import net.minecraft.network.chat.Component;
 import xaero.pac.client.gui.ConfigMenu;
 
 import java.util.function.Consumer;
+import java.util.regex.Pattern;
 
 /**
  * Top header widget for PartyScreen: OPAC Settings gear button and Party Rename bar.
  */
 public class PartyHeaderWidget {
+
+    /** Mirrors OPAC's server-side "parties.name" validator (letters/digits/space and a small punctuation set, max 100 chars). */
+    private static final Pattern VALID_PARTY_NAME = Pattern.compile("^(\\p{L}|[0-9 _'\"!?,\\-&%*():])*$");
 
     private EditBox partyNameBox;
     private Button btnRename;
@@ -51,12 +55,17 @@ public class PartyHeaderWidget {
     private void submitRename(Minecraft mc, Consumer<Component> showFeedback, Runnable onActionComplete) {
         if (partyNameBox != null) {
             String newName = partyNameBox.getValue().trim();
-            if (!newName.isEmpty() && !newName.equals(currentPartyName)) {
-                PartyCommands.renameParty(mc, newName);
-                currentPartyName = newName;
-                showFeedback.accept(Component.translatable("screen.opacui.feedback.renamed", newName));
-                onActionComplete.run();
+            if (newName.isEmpty() || newName.equals(currentPartyName)) {
+                return;
             }
+            if (newName.length() > 100 || !VALID_PARTY_NAME.matcher(newName).matches()) {
+                showFeedback.accept(Component.translatable("screen.opacui.feedback.invalid_party_name"));
+                return;
+            }
+            PartyCommands.renameParty(mc, newName);
+            currentPartyName = newName;
+            showFeedback.accept(Component.translatable("screen.opacui.feedback.renamed", newName));
+            onActionComplete.run();
         }
     }
 

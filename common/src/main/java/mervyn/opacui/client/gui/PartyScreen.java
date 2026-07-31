@@ -66,6 +66,7 @@ public class PartyScreen extends Screen {
     private int lastAllyCount;
     private boolean lastIsOwner;
     private PartyMemberRank lastLocalRank;
+    private Set<UUID> lastOnlinePlayerIds = Set.of();
     private int actionRefreshTicks;
 
     public PartyScreen(Screen parent) {
@@ -166,7 +167,15 @@ public class PartyScreen extends Screen {
                 .setParentScreen(parent)
                 .setTitle(localIsOwner ? Component.empty() : Component.translatable("screen.opacui.party_manager"))
                 .setSavingRunnable(() -> {})
-                .setDoesConfirmSave(false);
+                .setDoesConfirmSave(false)
+                .setAfterInitConsumer(screen -> screen.children().stream()
+                        .filter(net.minecraft.client.gui.components.AbstractWidget.class::isInstance)
+                        .map(net.minecraft.client.gui.components.AbstractWidget.class::cast)
+                        .filter(w -> w.getY() >= height - CLOTH_BOTTOM_MARGIN - 30)
+                        .forEach(w -> {
+                            w.visible = false;
+                            w.active = false;
+                        }));
 
         // Members Tab
         ConfigCategory membersCategory = builder.getOrCreateCategory(Component.translatable("screen.opacui.tab_members"));
@@ -222,14 +231,6 @@ public class PartyScreen extends Screen {
             acs.selectedCategoryIndex = savedTabIndex;
         }
         clothScreen.init(mc, width, height - CLOTH_BOTTOM_MARGIN);
-        clothScreen.children().stream()
-                .filter(net.minecraft.client.gui.components.AbstractWidget.class::isInstance)
-                .map(net.minecraft.client.gui.components.AbstractWidget.class::cast)
-                .filter(w -> w.getY() >= height - CLOTH_BOTTOM_MARGIN - 30)
-                .forEach(w -> {
-                    w.visible = false;
-                    w.active = false;
-                });
     }
 
     /** Dynamic in-place list update without full screen tear-down. */
@@ -327,6 +328,14 @@ public class PartyScreen extends Screen {
             lastLocalRank = localRank;
             init();
             return;
+        }
+
+        Set<UUID> onlinePlayerIds = party != null && mc.getConnection() != null
+                ? mc.getConnection().getOnlinePlayers().stream().map(pi -> pi.getProfile().getId()).collect(Collectors.toSet())
+                : Set.of();
+        if (!onlinePlayerIds.equals(lastOnlinePlayerIds)) {
+            lastOnlinePlayerIds = onlinePlayerIds;
+            refreshPartyLists();
         }
 
         if (actionRefreshTicks > 0) {
