@@ -168,6 +168,7 @@ public class PartyScreen extends Screen {
                 .setTitle(localIsOwner ? Component.empty() : Component.translatable("screen.opacui.party_manager"))
                 .setSavingRunnable(() -> {})
                 .setDoesConfirmSave(false)
+                .setTransparentBackground(true)
                 .setAfterInitConsumer(screen -> screen.children().stream()
                         .filter(net.minecraft.client.gui.components.AbstractWidget.class::isInstance)
                         .map(net.minecraft.client.gui.components.AbstractWidget.class::cast)
