@@ -9,3 +9,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Party screen no longer shows Cloth Config's tiled checkerboard background; it now dims the world behind the UI instead (`ConfigBuilder.setTransparentBackground(true)`).
+- Added missing `pack.mcmeta` to the Fabric and Forge modules, silencing a "failed to load a valid ResourcePackInfo" warning on dev client launch.
