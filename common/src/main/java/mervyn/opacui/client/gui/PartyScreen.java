@@ -168,7 +168,6 @@ public class PartyScreen extends Screen {
                 .setTitle(localIsOwner ? Component.empty() : Component.translatable("screen.opacui.party_manager"))
                 .setSavingRunnable(() -> {})
                 .setDoesConfirmSave(false)
-                .setTransparentBackground(true)
                 .setAfterInitConsumer(screen -> screen.children().stream()
                         .filter(net.minecraft.client.gui.components.AbstractWidget.class::isInstance)
                         .map(net.minecraft.client.gui.components.AbstractWidget.class::cast)
@@ -273,11 +272,10 @@ public class PartyScreen extends Screen {
 
     @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float delta) {
-        g.fill(0, 0, width, height, 0x90101010);
-
         if (clothScreen != null) {
             clothScreen.render(g, mouseX, mouseY, delta);
         } else {
+            g.fill(0, 0, width, height, 0x90101010);
             g.drawCenteredString(font, title, width / 2, 16, 0xFFFFFFFF);
             g.drawCenteredString(font, Component.translatable("screen.opacui.no_party"), width / 2, height / 2 - 20, 0xFFAAAAAA);
         }
