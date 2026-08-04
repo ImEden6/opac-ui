@@ -25,9 +25,20 @@ dependencies {
 	// Dependencies provided by user for Forge
 	modImplementation "curse.maven:cloth-config-348521:${project.cloth_config_forge}"
 	modImplementation "curse.maven:open-parties-and-claims-636608:${project.opac_forge}"
+	// Runtime-only: satisfies openpartiesandclaims' mandatory forgeconfigapiport dependency
+	modImplementation "curse.maven:forge-config-api-port-547434:${project.forgeconfigapiport_forge}"
 
 	common(project(path: ":common", configuration: "namedElements")) { transitive false }
 	shadowCommon(project(path: ":common", configuration: "transformProductionForge")) { transitive false }
+}
+
+// Workaround for https://github.com/architectury/architectury-loom/issues/191:
+// two jopt-simple versions (5.0.4 and 6.0-alpha-3) reach the module path and
+// break Forge's JPMS bootstrap resolution ("Module jopt.simple not found").
+configurations.configureEach {
+	resolutionStrategy {
+		force 'net.sf.jopt-simple:jopt-simple:5.0.4'
+	}
 }
 
 loom {
