@@ -29,5 +29,5 @@ A client-side GUI addon for Open Parties and Claims, providing a full party mana
     modId="openpartiesandclaims"
     mandatory=true
     versionRange="*"
-    ordering="NONE"
+    ordering="AFTER"
     side="CLIENT"
