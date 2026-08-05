@@ -17,26 +17,19 @@ config="opacui.common.mixins.json"
 [[dependencies.opacui]]
     modId="neoforge"
     type="required"
-    versionRange="[21.1.0,)"
+    versionRange="[26.1.2.22-beta,26.2)"
     ordering="NONE"
     side="BOTH"
 
 [[dependencies.opacui]]
     modId="minecraft"
     type="required"
-    versionRange="[1.21.1,1.22)"
+    versionRange="[26.1.2,26.2)"
     ordering="NONE"
     side="BOTH"
 
 [[dependencies.opacui]]
     modId="openpartiesandclaims"
-    type="required"
-    versionRange="*"
-    ordering="NONE"
-    side="CLIENT"
-
-[[dependencies.opacui]]
-    modId="cloth_config"
     type="required"
     versionRange="*"
     ordering="NONE"

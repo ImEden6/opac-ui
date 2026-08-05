@@ -3,9 +3,9 @@ package mervyn.opacui.client.gui.widget;
 import mervyn.opacui.client.util.AvatarCache;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.PlayerFaceRenderer;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.PlayerFaceExtractor;
+import net.minecraft.world.entity.player.PlayerSkin;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.List;
@@ -44,7 +44,7 @@ public class SuggestionDropdown {
                 : Set.of();
 
         suggestions = mc.getConnection().getOnlinePlayers().stream()
-                .map(pi -> pi.getProfile().getName())
+                .map(pi -> pi.getProfile().name())
                 .filter(name -> !lowerExcluded.contains(name.toLowerCase()))
                 .filter(name -> name.toLowerCase().startsWith(lower))
                 .sorted()
@@ -55,7 +55,7 @@ public class SuggestionDropdown {
         visible = !suggestions.isEmpty();
     }
 
-    public void render(GuiGraphics g, Font font, Minecraft mc, int boxX, int boxY, int width) {
+    public void extractContent(GuiGraphicsExtractor g, Font font, Minecraft mc, int boxX, int boxY, int width) {
         if (!isVisible()) return;
 
         int itemH = font.lineHeight + 4;
@@ -70,9 +70,9 @@ public class SuggestionDropdown {
                 g.fill(boxX, itemY, boxX + width, itemY + itemH, 0x55555555);
             }
             String sName = suggestions.get(i);
-            ResourceLocation skin = AvatarCache.getSkin(mc, null, sName);
-            PlayerFaceRenderer.draw(g, skin, boxX + 4, itemY + 1, 8);
-            g.drawString(font, sName, boxX + 16, itemY + 1, 0xFFFFFFFF, false);
+            PlayerSkin skin = AvatarCache.getSkin(mc, null, sName);
+            PlayerFaceExtractor.extractRenderState(g, skin, boxX + 4, itemY + 1, 8);
+            g.text(font, sName, boxX + 16, itemY + 1, 0xFFFFFFFF);
         }
     }
 

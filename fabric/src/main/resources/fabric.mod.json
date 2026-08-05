@@ -25,11 +25,10 @@
 		"opacui.common.mixins.json"
 	],
 	"depends": {
-		"fabricloader": ">=0.16.5",
-		"minecraft": "~1.21.1",
-		"java": ">=21",
+		"fabricloader": ">=0.19.1",
+		"minecraft": "~26.1.2",
+		"java": ">=25",
 		"fabric-api": "*",
-		"openpartiesandclaims": "*",
-		"cloth-config": "*"
+		"openpartiesandclaims": "*"
 	}
 }

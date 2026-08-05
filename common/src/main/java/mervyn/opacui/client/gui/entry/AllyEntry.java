@@ -1,15 +1,15 @@
 package mervyn.opacui.client.gui.entry;
 
-import me.shedaniel.clothconfig2.gui.entries.TooltipListEntry;
+import mervyn.opacui.client.gui.list.AbstractPartyEntry;
 import mervyn.opacui.client.util.PartyCommands;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import xaero.pac.client.parties.party.api.IClientPartyAllyInfoAPI;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Consumer;
 
 /**
@@ -21,9 +21,8 @@ import java.util.function.Consumer;
  * The actual command argument is the owner's username, which is the default name
  * of the allied party ({@link IClientPartyAllyInfoAPI#getAllyDefaultName()}).
  */
-public class AllyEntry extends TooltipListEntry<Void> {
+public class AllyEntry extends AbstractPartyEntry {
 
-    private static final int ENTRY_HEIGHT = 24;
     private static final int BTN_W = 56;
     private static final int BTN_H = 18;
 
@@ -32,9 +31,7 @@ public class AllyEntry extends TooltipListEntry<Void> {
     private final Button btnUnally;
     private final String displayName;
 
-    @SuppressWarnings("deprecation")
     public AllyEntry(IClientPartyAllyInfoAPI ally, boolean canModify, Consumer<Component> onAction) {
-        super(Component.literal((ally.getAllyName() != null && !ally.getAllyName().isEmpty()) ? ally.getAllyName() : ally.getAllyDefaultName()), null);
         this.ally = ally;
         this.canModify = canModify;
         this.displayName = (ally.getAllyName() != null && !ally.getAllyName().isEmpty()) ? ally.getAllyName() : ally.getAllyDefaultName();
@@ -54,11 +51,11 @@ public class AllyEntry extends TooltipListEntry<Void> {
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (button == 0 && Minecraft.getInstance().screen instanceof mervyn.opacui.client.gui.PartyScreen ps) {
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        if (event.button() == 0 && Minecraft.getInstance().screen instanceof mervyn.opacui.client.gui.PartyScreen ps) {
             ps.populateInputBox(resolveOwnerName());
         }
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClicked(event, doubleClick);
     }
 
     public static String parseOwnerName(String defaultName) {
@@ -77,32 +74,22 @@ public class AllyEntry extends TooltipListEntry<Void> {
     }
 
     @Override
-    public void render(GuiGraphics g, int index, int y, int x, int entryWidth, int entryHeight, int mouseX, int mouseY, boolean isHovered, float delta) {
+    public void extractContent(GuiGraphicsExtractor g, int mouseX, int mouseY, boolean isHovered, float delta) {
         Minecraft mc = Minecraft.getInstance();
-        g.drawString(mc.font, "Allied: " + displayName, x + 4, y + (entryHeight - 8) / 2, 0xFF88FFAA, false);
+        int x = getContentX();
+        int y = getContentY();
+        int entryWidth = getContentWidth();
+        int entryHeight = getContentHeight();
+
+        g.text(mc.font, "Allied: " + displayName, x + 4, y + (entryHeight - 8) / 2, 0xFF88FFAA);
 
         if (canModify) {
             int btnY = y + (entryHeight - BTN_H) / 2;
             btnUnally.setX(x + entryWidth - BTN_W - 2);
             btnUnally.setY(btnY);
-            btnUnally.render(g, mouseX, mouseY, delta);
+            btnUnally.extractRenderState(g, mouseX, mouseY, delta);
         }
     }
-
-    @Override
-    public int getItemHeight() { return ENTRY_HEIGHT; }
-
-    @Override
-    public Void getValue() { return null; }
-
-    @Override
-    public Optional<Void> getDefaultValue() { return Optional.empty(); }
-
-    @Override
-    public boolean isEdited() { return false; }
-
-    @Override
-    public void save() {}
 
     @Override
     public List<? extends net.minecraft.client.gui.components.events.GuiEventListener> children() {
@@ -113,7 +100,4 @@ public class AllyEntry extends TooltipListEntry<Void> {
     public List<? extends net.minecraft.client.gui.narration.NarratableEntry> narratables() {
         return canModify ? List.of(btnUnally) : List.of();
     }
-
-    @Override
-    public Optional<Component[]> getTooltip() { return Optional.empty(); }
 }

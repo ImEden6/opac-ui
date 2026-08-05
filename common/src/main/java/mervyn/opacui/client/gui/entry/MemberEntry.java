@@ -1,14 +1,14 @@
 package mervyn.opacui.client.gui.entry;
 
 import mervyn.opacui.client.util.AvatarCache;
-import net.minecraft.client.gui.components.PlayerFaceRenderer;
-import net.minecraft.resources.ResourceLocation;
-import me.shedaniel.clothconfig2.gui.entries.TooltipListEntry;
+import net.minecraft.client.gui.components.PlayerFaceExtractor;
+import net.minecraft.world.entity.player.PlayerSkin;
+import mervyn.opacui.client.gui.list.AbstractPartyEntry;
 import mervyn.opacui.client.gui.ConfirmActionScreen;
 import mervyn.opacui.client.util.PartyCommands;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
@@ -18,7 +18,6 @@ import xaero.pac.common.parties.party.member.PartyMemberRank;
 import xaero.pac.common.parties.party.member.api.IPartyMemberAPI;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Consumer;
 
 /**
@@ -27,9 +26,8 @@ import java.util.function.Consumer;
  *
  * Buttons are only shown if the local player has sufficient rank.
  */
-public class MemberEntry extends TooltipListEntry<Void> {
+public class MemberEntry extends AbstractPartyEntry {
 
-    private static final int ENTRY_HEIGHT = 24;
     private static final int BTN_W = EntryButton.WIDTH;
     private static final int BTN_H = EntryButton.HEIGHT;
     private static final int BTN_GAP = EntryButton.GAP;
@@ -43,7 +41,6 @@ public class MemberEntry extends TooltipListEntry<Void> {
     private final Button btnKick;
     private final Button btnTransfer;
 
-    @SuppressWarnings("deprecation")
     public MemberEntry(
             IPartyMemberAPI member,
             PartyMemberRank localRank,
@@ -51,7 +48,6 @@ public class MemberEntry extends TooltipListEntry<Void> {
             boolean isSelf,
             boolean isOnline,
             Consumer<Component> onAction) {
-        super(Component.literal(member.getUsername()), null);
         this.member = member;
         this.isOnline = isOnline;
 
@@ -135,21 +131,19 @@ public class MemberEntry extends TooltipListEntry<Void> {
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        return super.mouseClicked(mouseX, mouseY, button);
-    }
-
-    @Override
-    public void render(GuiGraphics g, int index, int y, int x, int entryWidth, int entryHeight, int mouseX, int mouseY,
-            boolean isHovered, float delta) {
+    public void extractContent(GuiGraphicsExtractor g, int mouseX, int mouseY, boolean isHovered, float delta) {
         Minecraft mc = Minecraft.getInstance();
+        int x = getContentX();
+        int y = getContentY();
+        int entryWidth = getContentWidth();
+        int entryHeight = getContentHeight();
 
         // ── Player Face Avatar ────────────────────────────────────────────
-        ResourceLocation skin = AvatarCache.getSkin(mc, member.getUUID(), member.getUsername());
+        PlayerSkin skin = AvatarCache.getSkin(mc, member.getUUID(), member.getUsername());
         int headSize = 12;
         int headX = x + 4;
         int headY = y + (entryHeight - headSize) / 2;
-        PlayerFaceRenderer.draw(g, skin, headX, headY, headSize);
+        PlayerFaceExtractor.extractRenderState(g, skin, headX, headY, headSize);
 
         // ── Text label ────────────────────────────────────────────────────
         MutableComponent dot = Component.literal(isOnline ? "●" : "○")
@@ -161,7 +155,7 @@ public class MemberEntry extends TooltipListEntry<Void> {
                 .append(Component.literal(star + " " + member.getUsername()).withStyle(s -> s.withColor(rankColor)));
         MutableComponent rankLabel = Component.literal(" [" + member.getRank().name() + "]")
                 .withStyle(ChatFormatting.DARK_GRAY);
-        g.drawString(mc.font, label.append(rankLabel), x + 22, y + (entryHeight - 8) / 2, 0xFFFFFFFF, false);
+        g.text(mc.font, label.append(rankLabel), x + 22, y + (entryHeight - 8) / 2, 0xFFFFFFFF);
 
         // ── Position & render buttons from right edge ──────────────────────
         int rightEdge = x + entryWidth - 2;
@@ -170,48 +164,24 @@ public class MemberEntry extends TooltipListEntry<Void> {
         if (btnTransfer.visible) {
             btnTransfer.setX(rightEdge - BTN_W);
             btnTransfer.setY(btnY);
-            btnTransfer.render(g, mouseX, mouseY, delta);
+            btnTransfer.extractRenderState(g, mouseX, mouseY, delta);
             rightEdge -= BTN_W + BTN_GAP;
         }
         if (btnKick.visible) {
             btnKick.setX(rightEdge - BTN_W);
             btnKick.setY(btnY);
-            btnKick.render(g, mouseX, mouseY, delta);
+            btnKick.extractRenderState(g, mouseX, mouseY, delta);
             rightEdge -= BTN_W + BTN_GAP;
         }
         if (btnRankUp.visible) {
             int half = BTN_W / 2 - 1;
             btnRankUp.setX(rightEdge - half);
             btnRankUp.setY(btnY);
-            btnRankUp.render(g, mouseX, mouseY, delta);
+            btnRankUp.extractRenderState(g, mouseX, mouseY, delta);
             btnRankDown.setX(rightEdge - half - BTN_GAP - half);
             btnRankDown.setY(btnY);
-            btnRankDown.render(g, mouseX, mouseY, delta);
+            btnRankDown.extractRenderState(g, mouseX, mouseY, delta);
         }
-    }
-
-    @Override
-    public int getItemHeight() {
-        return ENTRY_HEIGHT;
-    }
-
-    @Override
-    public Void getValue() {
-        return null;
-    }
-
-    @Override
-    public Optional<Void> getDefaultValue() {
-        return Optional.empty();
-    }
-
-    @Override
-    public boolean isEdited() {
-        return false;
-    }
-
-    @Override
-    public void save() {
     }
 
     @Override
@@ -222,11 +192,6 @@ public class MemberEntry extends TooltipListEntry<Void> {
     @Override
     public List<? extends net.minecraft.client.gui.narration.NarratableEntry> narratables() {
         return List.of(btnRankDown, btnRankUp, btnKick, btnTransfer);
-    }
-
-    @Override
-    public Optional<Component[]> getTooltip() {
-        return Optional.empty();
     }
 
     // ── Rank cycling helpers ──────────────────────────────────────────────

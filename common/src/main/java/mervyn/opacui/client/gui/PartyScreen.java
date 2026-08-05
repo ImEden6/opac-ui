@@ -1,20 +1,21 @@
 package mervyn.opacui.client.gui;
 
-import me.shedaniel.clothconfig2.api.ConfigBuilder;
-import me.shedaniel.clothconfig2.api.ConfigCategory;
-import me.shedaniel.clothconfig2.gui.AbstractConfigScreen;
-import me.shedaniel.clothconfig2.gui.entries.TooltipListEntry;
 import mervyn.opacui.client.gui.entry.AllyEntry;
 import mervyn.opacui.client.gui.entry.InviteEntry;
 import mervyn.opacui.client.gui.entry.MemberEntry;
+import mervyn.opacui.client.gui.list.AbstractPartyEntry;
+import mervyn.opacui.client.gui.list.PartyEntryList;
 import mervyn.opacui.client.gui.widget.PartyActionBarWidget;
 import mervyn.opacui.client.gui.widget.PartyHeaderWidget;
 import mervyn.opacui.client.gui.widget.SuggestionDropdown;
 import mervyn.opacui.client.util.PartyCommands;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.CharacterEvent;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,7 +30,6 @@ import org.lwjgl.glfw.GLFW;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -40,9 +40,15 @@ import java.util.stream.Collectors;
 public class PartyScreen extends Screen {
 
     private static final Logger LOGGER = LoggerFactory.getLogger("opacui");
-    private static final int CLOTH_BOTTOM_MARGIN = 72;
+    private static final int LIST_BOTTOM_MARGIN = 72;
     private static final int BAR_Y_OFFSET = 68;
     private static final int BOTTOM_Y_OFFSET = 44;
+
+    private static final int TAB_BAR_Y = 30;
+    private static final int TAB_BTN_WIDTH = 90;
+    private static final int TAB_BTN_HEIGHT = 20;
+    private static final int TAB_BTN_GAP = 4;
+    private static final int LIST_TOP = TAB_BAR_Y + TAB_BTN_HEIGHT + 4;
 
     private final Screen parent;
 
@@ -51,8 +57,15 @@ public class PartyScreen extends Screen {
     private final PartyActionBarWidget actionBarWidget = new PartyActionBarWidget();
     private final SuggestionDropdown suggestionDropdown = new SuggestionDropdown();
 
-    /** Cloth Config sub-screen that holds tabbed lists. */
-    private Screen clothScreen;
+    /** Tab lists — rebuilt fresh whenever the underlying party data changes. */
+    private PartyEntryList membersList;
+    private PartyEntryList invitesList;
+    private PartyEntryList alliesList;
+    private PartyEntryList activeListWidget;
+
+    private Button tabMembersBtn;
+    private Button tabInvitesBtn;
+    private Button tabAlliesBtn;
 
     // ── Feedback ──────────────────────────────────────────────────────────
     private Component feedbackText;
@@ -84,12 +97,12 @@ public class PartyScreen extends Screen {
 
     @Override
     protected void init() {
-        if (clothScreen instanceof AbstractConfigScreen acs) {
-            savedTabIndex = acs.selectedCategoryIndex;
-        }
         super.init();
         clearWidgets();
-        clothScreen = null;
+        membersList = null;
+        invitesList = null;
+        alliesList = null;
+        activeListWidget = null;
 
         IClientPartyAPI party = getParty();
         Minecraft mc = Minecraft.getInstance();
@@ -125,7 +138,7 @@ public class PartyScreen extends Screen {
                 b -> minecraft.setScreen(parent)).bounds(width / 2 - 50, height / 2 + 28, 100, 20).build());
     }
 
-    /** State B — in a party. Build Cloth Config tabbed screen & widgets. */
+    /** State B — in a party. Build tab bar, lists & widgets. */
     private void initInParty(IClientPartyAPI party) {
         Minecraft mc = Minecraft.getInstance();
         UUID localUUID = mc.player == null ? null : mc.player.getUUID();
@@ -142,8 +155,10 @@ public class PartyScreen extends Screen {
         if (headerWidget.getPartyNameBox() != null) addRenderableWidget(headerWidget.getPartyNameBox());
         if (headerWidget.getBtnRename() != null) addRenderableWidget(headerWidget.getBtnRename());
 
-        // 2. Cloth Config Screen
-        buildClothScreen(party, localUUID, localRank, localIsOwner, canModeratorPlus);
+        // 2. Tab bar + lists
+        buildLists(party, localUUID, localRank, localIsOwner, canModeratorPlus);
+        addTabBar();
+        showTab(savedTabIndex);
 
         // 3. Action Bar Widget
         actionBarWidget.init(
@@ -161,27 +176,50 @@ public class PartyScreen extends Screen {
         }
     }
 
-    private void buildClothScreen(IClientPartyAPI party, UUID localUUID, PartyMemberRank localRank, boolean localIsOwner, boolean canModeratorPlus) {
+    private void addTabBar() {
+        int totalWidth = 3 * TAB_BTN_WIDTH + 2 * TAB_BTN_GAP;
+        int startX = width / 2 - totalWidth / 2;
+
+        tabMembersBtn = Button.builder(Component.translatable("screen.opacui.tab_members"), b -> showTab(0))
+                .bounds(startX, TAB_BAR_Y, TAB_BTN_WIDTH, TAB_BTN_HEIGHT).build();
+        tabInvitesBtn = Button.builder(Component.translatable("screen.opacui.tab_invites"), b -> showTab(1))
+                .bounds(startX + (TAB_BTN_WIDTH + TAB_BTN_GAP), TAB_BAR_Y, TAB_BTN_WIDTH, TAB_BTN_HEIGHT).build();
+        tabAlliesBtn = Button.builder(Component.translatable("screen.opacui.tab_allies"), b -> showTab(2))
+                .bounds(startX + 2 * (TAB_BTN_WIDTH + TAB_BTN_GAP), TAB_BAR_Y, TAB_BTN_WIDTH, TAB_BTN_HEIGHT).build();
+
+        addRenderableWidget(tabMembersBtn);
+        addRenderableWidget(tabInvitesBtn);
+        addRenderableWidget(tabAlliesBtn);
+    }
+
+    /** Switches the visible tab: swaps which list is a registered widget, updates button/action-bar state. */
+    private void showTab(int index) {
+        savedTabIndex = index;
+        if (activeListWidget != null) {
+            removeWidget(activeListWidget);
+        }
+        activeListWidget = switch (index) {
+            case 1 -> invitesList;
+            case 2 -> alliesList;
+            default -> membersList;
+        };
+        if (activeListWidget != null) {
+            addRenderableWidget(activeListWidget);
+        }
+        if (tabMembersBtn != null) tabMembersBtn.active = index != 0;
+        if (tabInvitesBtn != null) tabInvitesBtn.active = index != 1;
+        if (tabAlliesBtn != null) tabAlliesBtn.active = index != 2;
+        actionBarWidget.updateForTab(index);
+    }
+
+    private void buildLists(IClientPartyAPI party, UUID localUUID, PartyMemberRank localRank, boolean localIsOwner, boolean canModeratorPlus) {
         Minecraft mc = Minecraft.getInstance();
-        ConfigBuilder builder = ConfigBuilder.create()
-                .setParentScreen(parent)
-                .setTitle(localIsOwner ? Component.empty() : Component.translatable("screen.opacui.party_manager"))
-                .setSavingRunnable(() -> {})
-                .setDoesConfirmSave(false)
-                .setTransparentBackground(false)
-                .setAfterInitConsumer(screen -> screen.children().stream()
-                        .filter(net.minecraft.client.gui.components.AbstractWidget.class::isInstance)
-                        .map(net.minecraft.client.gui.components.AbstractWidget.class::cast)
-                        .filter(w -> w.getY() >= height - CLOTH_BOTTOM_MARGIN - 30)
-                        .forEach(w -> {
-                            w.visible = false;
-                            w.active = false;
-                        }));
+        int listHeight = (height - LIST_BOTTOM_MARGIN) - LIST_TOP;
 
         // Members Tab
-        ConfigCategory membersCategory = builder.getOrCreateCategory(Component.translatable("screen.opacui.tab_members"));
+        membersList = new PartyEntryList(mc, width, listHeight, LIST_TOP);
         Set<UUID> onlinePlayers = minecraft.getConnection() != null
-                ? minecraft.getConnection().getOnlinePlayers().stream().map(pi -> pi.getProfile().getId()).collect(Collectors.toSet())
+                ? minecraft.getConnection().getOnlinePlayers().stream().map(pi -> pi.getProfile().id()).collect(Collectors.toSet())
                 : Set.of();
 
         party.getMemberInfoStream()
@@ -193,61 +231,51 @@ public class PartyScreen extends Screen {
                 .forEach(member -> {
                     boolean isSelf = Objects.equals(member.getUUID(), localUUID);
                     boolean isOnline = onlinePlayers.contains(member.getUUID());
-                    membersCategory.addEntry(new MemberEntry(member, localRank, localIsOwner, isSelf, isOnline, msg -> {
+                    membersList.addRow(new MemberEntry(member, localRank, localIsOwner, isSelf, isOnline, msg -> {
                         showFeedback(msg);
                         scheduleActionRefresh();
                     }));
                 });
 
         // Invites Tab
-        ConfigCategory invitesCategory = builder.getOrCreateCategory(Component.translatable("screen.opacui.tab_invites"));
+        invitesList = new PartyEntryList(mc, width, listHeight, LIST_TOP);
         if (party.getInviteCount() == 0) {
-            invitesCategory.addEntry(new PlaceholderEntry(Component.translatable("screen.opacui.empty_invites")));
+            invitesList.addRow(new PlaceholderEntry(Component.translatable("screen.opacui.empty_invites")));
         } else {
-            party.getInvitedPlayersStream().forEach(invite -> invitesCategory.addEntry(new InviteEntry(invite, msg -> {
+            party.getInvitedPlayersStream().forEach(invite -> invitesList.addRow(new InviteEntry(invite, msg -> {
                 showFeedback(msg);
                 scheduleActionRefresh();
             })));
         }
 
         // Allies Tab
-        ConfigCategory alliesCategory = builder.getOrCreateCategory(Component.translatable("screen.opacui.tab_allies"));
+        alliesList = new PartyEntryList(mc, width, listHeight, LIST_TOP);
         if (party.getAllyCount() == 0) {
-            alliesCategory.addEntry(new PlaceholderEntry(Component.translatable("screen.opacui.empty_allies")));
+            alliesList.addRow(new PlaceholderEntry(Component.translatable("screen.opacui.empty_allies")));
         } else {
             IClientPartyStorageAPI storage = OpenPACClientAPI.get().getClientPartyStorage();
             party.getAllyPartiesStream().forEach(ally -> {
                 var allyInfo = storage.getAllyInfoStorage().get(ally.getPartyId());
                 if (allyInfo != null) {
-                    alliesCategory.addEntry(new AllyEntry(allyInfo, canModeratorPlus, msg -> {
+                    alliesList.addRow(new AllyEntry(allyInfo, canModeratorPlus, msg -> {
                         showFeedback(msg);
                         scheduleActionRefresh();
                     }));
                 }
             });
         }
-
-        clothScreen = builder.build();
-        if (savedTabIndex > 0 && clothScreen instanceof AbstractConfigScreen acs) {
-            acs.selectedCategoryIndex = savedTabIndex;
-        }
-        clothScreen.init(mc, width, height - CLOTH_BOTTOM_MARGIN);
     }
 
     /** Dynamic in-place list update without full screen tear-down. */
     private void refreshPartyLists() {
         IClientPartyAPI party = getParty();
         if (party == null) {
-            if (clothScreen != null) init();
+            if (membersList != null) init();
             return;
         }
-        if (clothScreen == null) {
+        if (membersList == null) {
             init();
             return;
-        }
-
-        if (clothScreen instanceof AbstractConfigScreen acs) {
-            savedTabIndex = acs.selectedCategoryIndex;
         }
 
         Minecraft mc = Minecraft.getInstance();
@@ -263,7 +291,8 @@ public class PartyScreen extends Screen {
             return;
         }
 
-        buildClothScreen(party, localUUID, localRank, localIsOwner, canModeratorPlus);
+        buildLists(party, localUUID, localRank, localIsOwner, canModeratorPlus);
+        showTab(savedTabIndex);
         actionBarWidget.updateState(localIsOwner, canModeratorPlus, savedTabIndex, party);
     }
 
@@ -272,39 +301,33 @@ public class PartyScreen extends Screen {
     // ─────────────────────────────────────────────────────────────────────
 
     @Override
-    public void render(GuiGraphics g, int mouseX, int mouseY, float delta) {
-        if (clothScreen != null) {
-            clothScreen.render(g, mouseX, mouseY, delta);
+    public void extractBackground(GuiGraphicsExtractor g, int mouseX, int mouseY, float partial) {
+        super.extractBackground(g, mouseX, mouseY, partial);
+    }
+
+    @Override
+    public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partial) {
+        if (membersList != null) {
+            if (!lastIsOwner) {
+                g.centeredText(font, title, width / 2, 18, -1);
+            }
         } else {
-            g.fill(0, 0, width, height, 0x90101010);
-            g.drawCenteredString(font, title, width / 2, 16, 0xFFFFFFFF);
-            g.drawCenteredString(font, Component.translatable("screen.opacui.no_party"), width / 2, height / 2 - 20, 0xFFAAAAAA);
+            g.centeredText(font, title, width / 2, 16, 0xFFFFFFFF);
+            g.centeredText(font, Component.translatable("screen.opacui.no_party"), width / 2, height / 2 - 20, 0xFFAAAAAA);
         }
 
         if (feedbackTimer > 0 && feedbackText != null) {
-            g.drawCenteredString(font, feedbackText, width / 2, height - BAR_Y_OFFSET - 14, 0xFFFFAA00);
+            g.centeredText(font, feedbackText, width / 2, height - BAR_Y_OFFSET - 14, 0xFFFFAA00);
         }
 
-        super.render(g, mouseX, mouseY, delta);
-        suggestionDropdown.render(g, font, minecraft, width / 2 - 132, height - BAR_Y_OFFSET, 198);
+        super.extractRenderState(g, mouseX, mouseY, partial);
+        suggestionDropdown.extractContent(g, font, minecraft, width / 2 - 132, height - BAR_Y_OFFSET, 198);
     }
 
     @Override
     public void tick() {
         if (feedbackTimer > 0 && --feedbackTimer == 0) {
             feedbackText = null;
-        }
-
-        if (clothScreen != null) {
-            clothScreen.tick();
-        }
-
-        if (clothScreen instanceof AbstractConfigScreen acs) {
-            int currentTab = acs.selectedCategoryIndex;
-            if (currentTab != savedTabIndex) {
-                savedTabIndex = currentTab;
-                actionBarWidget.updateForTab(savedTabIndex);
-            }
         }
 
         IClientPartyAPI party = getParty();
@@ -331,7 +354,7 @@ public class PartyScreen extends Screen {
         }
 
         Set<UUID> onlinePlayerIds = party != null && mc.getConnection() != null
-                ? mc.getConnection().getOnlinePlayers().stream().map(pi -> pi.getProfile().getId()).collect(Collectors.toSet())
+                ? mc.getConnection().getOnlinePlayers().stream().map(pi -> pi.getProfile().id()).collect(Collectors.toSet())
                 : Set.of();
         if (!onlinePlayerIds.equals(lastOnlinePlayerIds)) {
             lastOnlinePlayerIds = onlinePlayerIds;
@@ -355,78 +378,49 @@ public class PartyScreen extends Screen {
     }
 
     @Override
-    public boolean mouseClicked(double x, double y, int btn) {
-        if (suggestionDropdown.mouseClicked(x, y, width / 2 - 132, height - BAR_Y_OFFSET, 198, font, this::populateInputBox)) {
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        if (suggestionDropdown.mouseClicked(event.x(), event.y(), width / 2 - 132, height - BAR_Y_OFFSET, 198, font, this::populateInputBox)) {
             return true;
         }
-
-        if (clothScreen != null && y < height - CLOTH_BOTTOM_MARGIN) {
-            boolean handled = clothScreen.mouseClicked(x, y, btn);
-            if (handled) {
-                releaseOuterTextFocus();
-            }
-            return handled || super.mouseClicked(x, y, btn);
-        }
-        return super.mouseClicked(x, y, btn);
-    }
-
-    /** Releases focus from PartyScreen's own text boxes so keystrokes route into clothScreen. */
-    private void releaseOuterTextFocus() {
-        setFocused(null);
-        if (headerWidget.getPartyNameBox() != null) headerWidget.getPartyNameBox().setFocused(false);
-        if (actionBarWidget.getInviteBox() != null) actionBarWidget.getInviteBox().setFocused(false);
+        return super.mouseClicked(event, doubleClick);
     }
 
     @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
-        if (clothScreen != null && mouseY < height - CLOTH_BOTTOM_MARGIN) {
-            return clothScreen.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
-        }
-        return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
-    }
-
-    @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (suggestionDropdown.keyPressed(keyCode, this::populateInputBox)) {
+    public boolean keyPressed(KeyEvent event) {
+        if (suggestionDropdown.keyPressed(event.key(), this::populateInputBox)) {
             return true;
         }
 
-        if (keyCode == GLFW.GLFW_KEY_ENTER) {
+        if (event.key() == GLFW.GLFW_KEY_ENTER) {
             if (headerWidget.handleEnterKey(minecraft, this::showFeedback, this::scheduleActionRefresh)) {
                 return true;
             }
-            if (actionBarWidget.handleEnterKey()) {
+            if (actionBarWidget.handleEnterKey(event)) {
                 return true;
             }
         }
-        if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
+        if (event.key() == GLFW.GLFW_KEY_ESCAPE) {
             onClose();
             return true;
         }
 
         if (isTextBoxFocused()) {
-            if (super.keyPressed(keyCode, scanCode, modifiers)) {
+            if (super.keyPressed(event)) {
                 return true;
             }
         }
 
-        if (clothScreen != null) {
-            return clothScreen.keyPressed(keyCode, scanCode, modifiers) || super.keyPressed(keyCode, scanCode, modifiers);
-        }
-        return super.keyPressed(keyCode, scanCode, modifiers);
+        return super.keyPressed(event);
     }
 
     @Override
-    public boolean charTyped(char chr, int modifiers) {
+    public boolean charTyped(CharacterEvent event) {
         if (isTextBoxFocused()) {
-            if (super.charTyped(chr, modifiers)) {
+            if (super.charTyped(event)) {
                 return true;
             }
         }
-        if (clothScreen != null) {
-            return clothScreen.charTyped(chr, modifiers) || super.charTyped(chr, modifiers);
-        }
-        return super.charTyped(chr, modifiers);
+        return super.charTyped(event);
     }
 
     // ─────────────────────────────────────────────────────────────────────
@@ -487,43 +481,22 @@ public class PartyScreen extends Screen {
         }
     }
 
-    private static class PlaceholderEntry extends TooltipListEntry<Void> {
-        private static final int ENTRY_HEIGHT = 20;
+    private static class PlaceholderEntry extends AbstractPartyEntry {
         private final Component text;
 
-        @SuppressWarnings("deprecation")
         public PlaceholderEntry(Component text) {
-            super(Component.empty(), null);
             this.text = text;
         }
 
         @Override
-        public void render(GuiGraphics g, int index, int y, int x, int entryWidth, int entryHeight, int mouseX, int mouseY, boolean isHovered, float delta) {
-            g.drawCenteredString(Minecraft.getInstance().font, text, x + entryWidth / 2, y + (entryHeight - 8) / 2, 0xFF888888);
+        public void extractContent(GuiGraphicsExtractor g, int mouseX, int mouseY, boolean isHovered, float delta) {
+            g.centeredText(Minecraft.getInstance().font, text, getContentX() + getContentWidth() / 2, getContentY() + (getContentHeight() - 8) / 2, 0xFF888888);
         }
-
-        @Override
-        public int getItemHeight() { return ENTRY_HEIGHT; }
-
-        @Override
-        public Void getValue() { return null; }
-
-        @Override
-        public Optional<Void> getDefaultValue() { return Optional.empty(); }
-
-        @Override
-        public boolean isEdited() { return false; }
-
-        @Override
-        public void save() {}
 
         @Override
         public List<? extends net.minecraft.client.gui.components.events.GuiEventListener> children() { return List.of(); }
 
         @Override
         public List<? extends net.minecraft.client.gui.narration.NarratableEntry> narratables() { return List.of(); }
-
-        @Override
-        public Optional<Component[]> getTooltip() { return Optional.empty(); }
     }
 }

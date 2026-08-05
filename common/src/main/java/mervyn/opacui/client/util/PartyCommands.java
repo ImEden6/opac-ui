@@ -3,8 +3,7 @@ package mervyn.opacui.client.util;
 import net.minecraft.client.Minecraft;
 
 /**
- * Helper that fires OPAC's party commands using the same unsigned-first
- * strategy OPAC itself uses in CommandUtil.
+ * Helper that fires OPAC's party commands.
  * All commands are under the stable prefix "openpac-parties".
  */
 public final class PartyCommands {
@@ -92,9 +91,7 @@ public final class PartyCommands {
 
     private static void send(Minecraft mc, String command) {
         if (mc.player == null || mc.player.connection == null) return;
-        if (!mc.player.connection.sendUnsignedCommand(command)) {
-            mc.player.connection.sendCommand(command);
-        }
+        mc.player.connection.sendCommand(command);
     }
 
     private PartyCommands() {}

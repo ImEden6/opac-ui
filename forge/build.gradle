@@ -1,53 +1,62 @@
 plugins {
-	id 'architectury-plugin'
-	id 'dev.architectury.loom'
-	id 'com.github.johnrengelman.shadow'
+	id 'idea'
+	id 'net.minecraftforge.gradle' version '[7.0.17,8)'
 }
 
-architectury {
-	platformSetupLoomIde()
-	forge()
+java.withSourcesJar()
+
+jar {
+	manifest {
+		attributes["MixinConfigs"] = "opacui.common.mixins.json"
+	}
 }
 
-configurations {
-	common
-	shadowCommon
-	compileClasspath.extendsFrom common
-	runtimeClasspath.extendsFrom common
-	developmentForge.extendsFrom common
+minecraft {
+	runs {
+		configureEach {
+			workingDir = layout.projectDirectory.dir('run')
+			// Mixin requires either specifying the config via command line, or in the Manifest
+			args "--mixin.config=opacui.common.mixins.json"
+		}
+
+		register('client')
+
+		register('server') {
+			args '--nogui'
+		}
+	}
+}
+
+repositories {
+	minecraft.mavenizer(it)
+	maven fg.forgeMaven
+	maven fg.minecraftLibsMaven
 }
 
 dependencies {
-	minecraft "com.mojang:minecraft:${project.minecraft_version}"
-	mappings loom.officialMojangMappings()
-	forge "net.minecraftforge:forge:${project.forge_version}"
+	implementation minecraft.dependency("net.minecraftforge:forge:${minecraft_version}-${forge_version}")
+	compileOnly project(":common")
+
+	// forgeconfigapiport pulls in a transitive dep that conflicts without this
+	implementation("io.github.llamalad7:mixinextras-forge:0.3.5")
 
 	// Dependencies provided by user for Forge
-	modImplementation "curse.maven:cloth-config-348521:${project.cloth_config_forge}"
-	modImplementation "curse.maven:open-parties-and-claims-636608:${project.opac_forge}"
+	implementation "curse.maven:open-parties-and-claims-636608:${project.opac_forge}"
 	// Runtime-only: satisfies openpartiesandclaims' mandatory forgeconfigapiport dependency
-	modImplementation "curse.maven:forge-config-api-port-547434:${project.forgeconfigapiport_forge}"
+	implementation("curse.maven:forge-config-api-port-547434:${project.forgeconfigapiport_forge}") { transitive = false }
 
-	common(project(path: ":common", configuration: "namedElements")) { transitive false }
-	shadowCommon(project(path: ":common", configuration: "transformProductionForge")) { transitive false }
+	// Hack fix: force jopt-simple to exactly 5.0.4 (Mojang ships that version, but some
+	// transitive dependencies request 6.0+, which breaks Forge's JPMS bootstrap resolution)
+	implementation('net.sf.jopt-simple:jopt-simple:5.0.4') { version { strictly '5.0.4' } }
 }
 
-// Workaround for https://github.com/architectury/architectury-loom/issues/191:
-// two jopt-simple versions (5.0.4 and 6.0-alpha-3) reach the module path and
-// break Forge's JPMS bootstrap resolution ("Module jopt.simple not found").
-configurations.configureEach {
-	resolutionStrategy {
-		force 'net.sf.jopt-simple:jopt-simple:5.0.4'
-	}
-}
-
-loom {
-	forge {
-		mixinConfig "opacui.common.mixins.json"
-	}
+compileJava {
+	source(project(":common").sourceSets.main.allSource)
 }
 
 processResources {
+	from project(":common").sourceSets.main.resources
+
 	def version = project.version
 	inputs.property "version", version
 
@@ -56,28 +65,12 @@ processResources {
 	}
 }
 
-shadowJar {
-	exclude "fabric.mod.json"
-	configurations = [project.configurations.shadowCommon]
-	archiveClassifier.set("dev-shadow")
+tasks.named("sourcesJar", Jar) {
+	from(project(":common").sourceSets.main.allSource)
 }
 
-remapJar {
-	input.set shadowJar.archiveFile
-	dependsOn shadowJar
-	archiveClassifier.set(null)
-}
-
-jar {
-	archiveClassifier.set("dev")
-}
-
-tasks.withType(JavaCompile).configureEach {
-	it.options.release = 21
-}
-
-java {
-	withSourcesJar()
-	sourceCompatibility = JavaVersion.VERSION_21
-	targetCompatibility = JavaVersion.VERSION_21
+sourceSets.each {
+	def dir = layout.buildDirectory.dir("sourcesSets/$it.name")
+	it.output.resourcesDir = dir
+	it.java.destinationDirectory = dir
 }

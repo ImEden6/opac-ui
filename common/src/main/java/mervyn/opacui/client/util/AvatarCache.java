@@ -2,115 +2,40 @@ package mervyn.opacui.client.util;
 
 import com.mojang.authlib.GameProfile;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.client.resources.DefaultPlayerSkin;
-import net.minecraft.client.resources.SkinManager;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.player.PlayerSkin;
 
-import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Caches player skin ResourceLocations for GUI head rendering with TTL eviction.
- * Expired entries (older than 5 minutes) are re-fetched via Minecraft's SkinManager
- * so skin updates by players are automatically picked up.
+ * Resolves player skins for GUI head rendering.
+ *
+ * Prefers {@link PlayerInfo#getSkin()} for currently-connected players — it
+ * already holds the real, signed texture properties from the network layer.
+ * {@code SkinManager#get} resolves textures from whatever {@link GameProfile}
+ * it's handed, and a synthetic profile built from just a UUID/name has no
+ * texture properties, so falling back to it for online players showed the
+ * wrong (or default) skin. Only offline members fall back to that lookup.
  */
 public final class AvatarCache {
 
-    private static final long CACHE_TTL_MS = 5 * 60 * 1000L; // 5 minutes TTL
-
-    private record CachedSkin(ResourceLocation location, long timestamp) {}
-
-    private static final Map<UUID, CachedSkin> CACHE_BY_UUID = new ConcurrentHashMap<>();
-    private static final Map<String, CachedSkin> CACHE_BY_NAME = new ConcurrentHashMap<>();
-    private static final Map<Object, Long> REQUESTED_TIMESTAMPS = new ConcurrentHashMap<>();
-
     private AvatarCache() {}
 
-    /** Clears all cached avatar textures, forcing skin re-fetches. */
-    public static void clear() {
-        CACHE_BY_UUID.clear();
-        CACHE_BY_NAME.clear();
-        REQUESTED_TIMESTAMPS.clear();
-    }
-
-    private static ResourceLocation getDefaultSkinLocation(UUID uuid) {
-        return DefaultPlayerSkin.get(uuid != null ? uuid : UUID.randomUUID()).texture();
-    }
-
-    public static ResourceLocation getSkin(Minecraft mc, UUID uuid, String username) {
-        if (mc == null) return getDefaultSkinLocation(uuid);
-
-        long now = System.currentTimeMillis();
-
-        // Evict expired entries in cache maps if maps grow large
-        if (REQUESTED_TIMESTAMPS.size() > 100) {
-            REQUESTED_TIMESTAMPS.entrySet().removeIf(entry -> now - entry.getValue() > CACHE_TTL_MS);
-        }
-        if (CACHE_BY_UUID.size() > 100) {
-            CACHE_BY_UUID.entrySet().removeIf(entry -> now - entry.getValue().timestamp() > CACHE_TTL_MS);
-        }
-        if (CACHE_BY_NAME.size() > 100) {
-            CACHE_BY_NAME.entrySet().removeIf(entry -> now - entry.getValue().timestamp() > CACHE_TTL_MS);
+    public static PlayerSkin getSkin(Minecraft mc, UUID uuid, String username) {
+        if (mc == null || (uuid == null && (username == null || username.isEmpty()))) {
+            return DefaultPlayerSkin.get(uuid != null ? uuid : UUID.randomUUID());
         }
 
-        // 1. Check cached UUID (validate TTL)
-        if (uuid != null) {
-            CachedSkin cached = CACHE_BY_UUID.get(uuid);
-            if (cached != null) {
-                if (now - cached.timestamp < CACHE_TTL_MS) {
-                    return cached.location;
-                } else {
-                    CACHE_BY_UUID.remove(uuid);
-                    REQUESTED_TIMESTAMPS.remove(uuid);
-                }
+        if (mc.getConnection() != null) {
+            PlayerInfo info = uuid != null ? mc.getConnection().getPlayerInfo(uuid)
+                    : mc.getConnection().getPlayerInfo(username);
+            if (info != null) {
+                return info.getSkin();
             }
-        }
-
-        // 2. Check cached Name (validate TTL)
-        if (username != null && !username.isEmpty()) {
-            String lower = username.toLowerCase();
-            CachedSkin cachedName = CACHE_BY_NAME.get(lower);
-            if (cachedName != null) {
-                if (now - cachedName.timestamp < CACHE_TTL_MS) {
-                    return cachedName.location;
-                } else {
-                    CACHE_BY_NAME.remove(lower);
-                    REQUESTED_TIMESTAMPS.remove(lower);
-                }
-            }
-        }
-
-        if (uuid == null && (username == null || username.isEmpty())) {
-            return getDefaultSkinLocation(uuid);
         }
 
         GameProfile profile = new GameProfile(uuid, username);
-
-        // 3. Request via SkinManager if not requested recently
-        SkinManager skinManager = mc.getSkinManager();
-        Object key = uuid != null ? uuid : username.toLowerCase();
-
-        Long lastReq = REQUESTED_TIMESTAMPS.get(key);
-        if (lastReq == null || now - lastReq > CACHE_TTL_MS) {
-            REQUESTED_TIMESTAMPS.put(key, now);
-            try {
-                var skinSupplier = skinManager.getOrLoad(profile);
-                skinSupplier.thenAccept(skin -> {
-                    if (skin != null) {
-                        ResourceLocation loc = skin.texture();
-                        CachedSkin entry = new CachedSkin(loc, System.currentTimeMillis());
-                        if (uuid != null) CACHE_BY_UUID.put(uuid, entry);
-                        if (username != null && !username.isEmpty()) CACHE_BY_NAME.put(username.toLowerCase(), entry);
-                    }
-                });
-            } catch (Exception ignored) {}
-        }
-
-        try {
-            return skinManager.getInsecureSkin(profile).texture();
-        } catch (Exception e) {
-            return getDefaultSkinLocation(uuid);
-        }
+        return mc.getSkinManager().createLookup(profile, false).get();
     }
 }

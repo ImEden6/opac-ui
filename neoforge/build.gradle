@@ -1,36 +1,41 @@
 plugins {
-	id 'architectury-plugin'
-	id 'dev.architectury.loom'
-	id 'com.github.johnrengelman.shadow'
+	id 'idea'
+	id 'net.neoforged.gradle.userdev' version '7.1.22'
 }
 
-architectury {
-	platformSetupLoomIde()
-	neoForge()
-}
+java.withSourcesJar()
 
-configurations {
-	common
-	shadowCommon
-	compileClasspath.extendsFrom common
-	runtimeClasspath.extendsFrom common
-	developmentNeoForge.extendsFrom common
+runs {
+	configureEach {
+		modSource project.sourceSets.main
+	}
+	client {
+		argument '--username=Dev'
+	}
+	server {
+		argument '--nogui'
+	}
 }
 
 dependencies {
-	minecraft "com.mojang:minecraft:${project.minecraft_version}"
-	mappings loom.officialMojangMappings()
-	neoForge "net.neoforged:neoforge:${project.neoforge_version}"
+	implementation "net.neoforged:neoforge:${neoforge_version}"
+	compileOnly project(":common")
 
 	// Dependencies for NeoForge
-	modImplementation "curse.maven:cloth-config-348521:${project.cloth_config_neoforge}"
-	modImplementation "curse.maven:open-parties-and-claims-636608:${project.opac_neoforge}"
-
-	common(project(path: ":common", configuration: "namedElements")) { transitive false }
-	shadowCommon(project(path: ":common", configuration: "transformProductionNeoForge")) { transitive false }
+	implementation "curse.maven:open-parties-and-claims-636608:${project.opac_neoforge}"
 }
 
-processResources {
+// NeoGradle compiles the game, but we don't want to add our common code to the game's code
+// (or to compileTestJava, which has no real test sources of its own).
+Spec<Task> notNeoTask = { Task it -> !it.name.startsWith("neo") && !it.name.contains("Test") } as Spec<Task>
+
+tasks.withType(JavaCompile).matching(notNeoTask).configureEach {
+	source(project(":common").sourceSets.main.allSource)
+}
+
+tasks.withType(ProcessResources).matching(notNeoTask).configureEach {
+	from project(":common").sourceSets.main.resources
+
 	def version = project.version
 	inputs.property "version", version
 
@@ -39,28 +44,6 @@ processResources {
 	}
 }
 
-shadowJar {
-	exclude "fabric.mod.json"
-	configurations = [project.configurations.shadowCommon]
-	archiveClassifier.set("dev-shadow")
-}
-
-remapJar {
-	input.set shadowJar.archiveFile
-	dependsOn shadowJar
-	archiveClassifier.set(null)
-}
-
-jar {
-	archiveClassifier.set("dev")
-}
-
-tasks.withType(JavaCompile).configureEach {
-	it.options.release = 21
-}
-
-java {
-	withSourcesJar()
-	sourceCompatibility = JavaVersion.VERSION_21
-	targetCompatibility = JavaVersion.VERSION_21
+tasks.named("sourcesJar", Jar) {
+	from(project(":common").sourceSets.main.allSource)
 }

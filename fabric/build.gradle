@@ -1,12 +1,5 @@
 plugins {
-	id 'architectury-plugin'
-	id 'dev.architectury.loom'
-	id 'com.github.johnrengelman.shadow'
-}
-
-architectury {
-	platformSetupLoomIde()
-	fabric()
+	id 'net.fabricmc.fabric-loom' version '1.16-SNAPSHOT'
 }
 
 loom {
@@ -27,79 +20,33 @@ loom {
 	}
 }
 
-repositories {
-	maven {
-		url = "https://api.modrinth.com/maven"
-		content {
-			includeGroup "maven.modrinth"
-		}
-	}
-	maven {
-		url = "https://maven.shedaniel.me/"
-		content {
-			includeGroup "me.shedaniel.cloth"
-		}
-	}
-}
-
-configurations {
-	common
-	shadowCommon
-	compileClasspath.extendsFrom common
-	runtimeClasspath.extendsFrom common
-	developmentFabric.extendsFrom common
-}
-
 dependencies {
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
-	mappings loom.officialMojangMappings()
-	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+	implementation "net.fabricmc:fabric-loader:${project.fabric_loader_version}"
 
-	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 
 	// Dependencies
-	modImplementation "curse.maven:open-parties-and-claims-636608:${project.opac_fabric}"
-	modImplementation "curse.maven:cloth-config-348521:${project.cloth_config_fabric}"
+	implementation "curse.maven:open-parties-and-claims-636608:${project.opac_fabric}"
 	// OPAC's Fabric build needs Forge Config API Port (its config system, ported to Fabric)
-	modImplementation "maven.modrinth:forge-config-api-port:v21.1.6-1.21.1-Fabric"
-	// Cloth Config needs its own basic-math lib (Rectangle/Point); curse.maven jars carry
-	// no dependency metadata so it never gets pulled in transitively
-	implementation "me.shedaniel.cloth:basic-math:0.6.1"
+	implementation "curse.maven:forge-config-api-port-547434:${project.forgeconfigapiport_fabric}"
 
-	common(project(path: ":common", configuration: "namedElements")) { transitive false }
-	shadowCommon(project(path: ":common", configuration: "transformProductionFabric")) { transitive false }
+	// Visibility into common's source for the IDE/build ordering; common's actual
+	// classes are compiled straight into this module via the source(...) block below.
+	compileOnly project(":common")
+}
+
+compileJava {
+	source(project(":common").sourceSets.main.allSource)
 }
 
 processResources {
+	from project(":common").sourceSets.main.resources
+
 	def version = project.version
 	inputs.property "version", version
 
 	filesMatching("fabric.mod.json") {
 		expand "version": version
 	}
-}
-
-shadowJar {
-	configurations = [project.configurations.shadowCommon]
-	archiveClassifier.set("dev-shadow")
-}
-
-remapJar {
-	input.set shadowJar.archiveFile
-	dependsOn shadowJar
-	archiveClassifier.set(null)
-}
-
-jar {
-	archiveClassifier.set("dev")
-}
-
-tasks.withType(JavaCompile).configureEach {
-	it.options.release = 21
-}
-
-java {
-	withSourcesJar()
-	sourceCompatibility = JavaVersion.VERSION_21
-	targetCompatibility = JavaVersion.VERSION_21
 }

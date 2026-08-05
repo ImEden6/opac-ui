@@ -1,6 +1,6 @@
 package mervyn.opacui.client.gui;
 
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -40,9 +40,12 @@ public class ConfirmActionScreen extends Screen {
     }
 
     @Override
-    public void render(GuiGraphics g, int mouseX, int mouseY, float delta) {
-        renderBackground(g, mouseX, mouseY, delta);
+    public void extractBackground(GuiGraphicsExtractor g, int mouseX, int mouseY, float partial) {
+        super.extractBackground(g, mouseX, mouseY, partial);
+    }
 
+    @Override
+    public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partial) {
         var lines = font.split(message, 220);
         int lineCount = Math.max(1, lines.size());
         int msgHeight = lineCount * (font.lineHeight + 2);
@@ -55,12 +58,12 @@ public class ConfirmActionScreen extends Screen {
         g.fill(x - 2, y - 2, x + boxW + 2, y + boxH + 2, 0xFF222222);
         g.fill(x, y, x + boxW, y + boxH, 0xFF333333);
 
-        g.drawCenteredString(font, title, width / 2, y + 8, 0xFFFFAA00);
+        g.centeredText(font, title, width / 2, y + 8, 0xFFFFAA00);
 
         int msgColor = 0xFFDDDDDD;
         int lineY = y + 24;
         for (var line : lines) {
-            g.drawString(font, line, x + 10, lineY, msgColor, false);
+            g.text(font, line, x + 10, lineY, msgColor);
             lineY += font.lineHeight + 2;
         }
 
@@ -75,7 +78,7 @@ public class ConfirmActionScreen extends Screen {
             cancelButton.setY(btnY);
         }
 
-        super.render(g, mouseX, mouseY, delta);
+        super.extractRenderState(g, mouseX, mouseY, partial);
     }
 
     @Override

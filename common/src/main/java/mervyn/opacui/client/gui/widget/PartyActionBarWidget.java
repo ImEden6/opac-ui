@@ -7,6 +7,7 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.KeyEvent;
 import net.minecraft.network.chat.Component;
 import xaero.pac.client.parties.party.api.IClientPartyAPI;
 
@@ -150,9 +151,9 @@ public class PartyActionBarWidget {
         return btnDone;
     }
 
-    public boolean handleEnterKey() {
+    public boolean handleEnterKey(KeyEvent event) {
         if (inviteBox != null && inviteBox.isFocused() && btnSendInvite != null && btnSendInvite.active) {
-            btnSendInvite.onPress();
+            btnSendInvite.onPress(event);
             return true;
         }
         return false;
@@ -164,7 +165,7 @@ public class PartyActionBarWidget {
         if (name.isEmpty()) return;
 
         boolean isOnline = mc.getConnection() != null && mc.getConnection().getOnlinePlayers().stream()
-                .anyMatch(pi -> pi.getProfile().getName().equalsIgnoreCase(name));
+                .anyMatch(pi -> pi.getProfile().name().equalsIgnoreCase(name));
         if (!isOnline) {
             showFeedback.accept(Component.translatable("screen.opacui.feedback.player_not_online", name));
             return;
