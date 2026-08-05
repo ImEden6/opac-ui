@@ -6,7 +6,7 @@ A client-side mod that adds an in-game party management GUI for [Open Parties an
 
 - Minecraft 1.20.1 (Fabric)
 - Fabric API
-- Forge Config API Port (Fabric only — required by Open Parties and Claims' Fabric build)
+- Forge Config API Port (Fabric only - required by Open Parties and Claims' Fabric build)
 - Open Parties and Claims (≥ 1.20.1)
 - Cloth Config API (≥ 11.x)
 
@@ -14,12 +14,12 @@ A client-side mod that adds an in-game party management GUI for [Open Parties an
 
 Press `P` (configurable in key bindings) to open the party manager.
 
-- **Not in a party** — Create Party button
-- **In a party** — Tabbed screen with three tabs:
-  - **Members** — view ranked member list; promote/demote, kick, and transfer ownership (permission-dependent)
-  - **Invite** — invite players by name; revoke pending invites
-  - **Allies** — view allied parties; unally (permission-dependent)
+- **Not in a party** - Create Party button
+- **In a party** - Tabbed screen with three tabs:
+  - **Members** - view ranked member list; promote/demote, kick, and transfer ownership (permission-dependent)
+  - **Invite** - invite players by name; revoke pending invites
+  - **Allies** - view allied parties; unally (permission-dependent)
 
 ## License
 
-LGPL-3.0-only — see [LICENSE](LICENSE). Matches the Open Parties and Claims project.
+LGPL-3.0-only - see [LICENSE](LICENSE). Matches the Open Parties and Claims project.
