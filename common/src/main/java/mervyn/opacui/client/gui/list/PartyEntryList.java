@@ -19,4 +19,15 @@ public class PartyEntryList extends ContainerObjectSelectionList<AbstractPartyEn
     public void addRow(AbstractPartyEntry entry) {
         addEntry(entry);
     }
+
+    /**
+     * Vanilla's {@code AbstractSelectionList.getRowWidth()} hardcodes 220px regardless of the
+     * width this list was constructed with, which is nowhere near enough for an avatar, username,
+     * rank label, and up to four buttons on a member row. Stretch rows to (nearly) the list's
+     * actual width instead, leaving a small margin for the scrollbar.
+     */
+    @Override
+    public int getRowWidth() {
+        return Math.max(220, getWidth() - 20);
+    }
 }

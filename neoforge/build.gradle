@@ -12,8 +12,14 @@ runs {
 	client {
 		argument '--username=Dev'
 	}
+	client2 {
+		runType 'client'
+		argument '--username=Tester2'
+		workingDirectory = file('run2')
+	}
 	server {
 		argument '--nogui'
+		workingDirectory = file('run-server')
 	}
 }
 
