@@ -11,6 +11,8 @@ import net.minecraft.network.chat.Component;
  */
 public class ConfirmActionScreen extends Screen {
 
+    private static final int SCREEN_MARGIN = 16;
+
     private final Screen parent;
     private final Component message;
     private final Runnable onConfirm;
@@ -51,11 +53,14 @@ public class ConfirmActionScreen extends Screen {
 
         int x = (width - boxW) / 2;
         int y = (height - boxH) / 2;
+        x = Math.max(SCREEN_MARGIN, Math.min(x, width - boxW - SCREEN_MARGIN));
+        y = Math.max(SCREEN_MARGIN, Math.min(y, height - boxH - SCREEN_MARGIN));
+        int boxCenterX = x + boxW / 2;
 
         g.fill(x - 2, y - 2, x + boxW + 2, y + boxH + 2, 0xFF222222);
         g.fill(x, y, x + boxW, y + boxH, 0xFF333333);
 
-        g.drawCenteredString(font, title, width / 2, y + 8, 0xFFFFAA00);
+        g.drawCenteredString(font, title, boxCenterX, y + 8, 0xFFFFAA00);
 
         int msgColor = 0xFFDDDDDD;
         int lineY = y + 24;
@@ -65,7 +70,7 @@ public class ConfirmActionScreen extends Screen {
         }
 
         int btnY = lineY + 8;
-        int cx = width / 2;
+        int cx = boxCenterX;
         if (confirmButton != null) {
             confirmButton.setX(cx - 105);
             confirmButton.setY(btnY);
