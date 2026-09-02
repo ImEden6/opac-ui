@@ -34,7 +34,7 @@ opac-ui always requires [Open Parties and Claims](https://modrinth.com/mod/open-
 | `1.20.1/main` | 1.20.1 | Fabric | ≥ 1.20.1 | ≥ 11.x | 0.92.11+1.20.1 | Fabric only |
 | `1.21.1/main` | 1.21.1 | Fabric, Forge, NeoForge | ≥ 1.21.1 | ≥ 15.x | 0.105.0+1.21.1 (Fabric) | Fabric and Forge (not needed on NeoForge) |
 | `26.1.2/main` | 26.1.2 | Fabric, Forge, NeoForge | ≥ 26.1.2 | not used | 0.145.4+26.1.2 (Fabric) | Fabric and Forge (not needed on NeoForge) |
-| `26.2/main` | 26.2 | Fabric, Forge, NeoForge | ≥ 26.2 | not used | 0.152.0+26.2 (Fabric) | Fabric and Forge (not needed on NeoForge) |
+| `26.2/main` | 26.2 | Fabric, Forge, NeoForge | ≥ 26.2 | not used | 0.159.0+26.2 (Fabric) | Fabric and Forge (not needed on NeoForge) |
 
 Notes:
 - Cloth Config was dropped starting with the `26.1.2/main` branch since it
