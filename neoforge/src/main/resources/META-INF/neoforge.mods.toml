@@ -17,14 +17,14 @@ config="opacui.common.mixins.json"
 [[dependencies.opacui]]
     modId="neoforge"
     type="required"
-    versionRange="[26.1.2.22-beta,26.2)"
+    versionRange="[26.2.0.57,26.3)"
     ordering="NONE"
     side="BOTH"
 
 [[dependencies.opacui]]
     modId="minecraft"
     type="required"
-    versionRange="[26.1.2,26.2)"
+    versionRange="[26.2,26.3)"
     ordering="NONE"
     side="BOTH"
 

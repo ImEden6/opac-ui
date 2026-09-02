@@ -33,7 +33,7 @@ public class PartyHeaderWidget {
         // OPAC Config Gear Button in top-right corner
         btnConfigGear = Button.builder(
                 Component.literal("⚙"),
-                b -> mc.setScreen(new ConfigMenu(screen, screen))
+                b -> mc.gui.setScreen(new ConfigMenu(screen, screen))
         ).bounds(width - 24, 6, 18, 18)
                 .tooltip(Tooltip.create(Component.translatable("screen.opacui.tooltip.config")))
                 .build();

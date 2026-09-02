@@ -37,7 +37,7 @@ public class ConfirmActionScreen extends Screen {
 
         cancelButton = addRenderableWidget(Button.builder(
                 Component.translatable("screen.opacui.cancel"),
-                b -> minecraft.setScreen(parent)
+                b -> minecraft.gui.setScreen(parent)
         ).bounds(0, 0, 100, 20).build());
     }
 
@@ -91,6 +91,6 @@ public class ConfirmActionScreen extends Screen {
 
     @Override
     public void onClose() {
-        minecraft.setScreen(parent);
+        minecraft.gui.setScreen(parent);
     }
 }

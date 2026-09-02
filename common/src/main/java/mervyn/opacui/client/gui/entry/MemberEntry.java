@@ -77,9 +77,9 @@ public class MemberEntry extends AbstractPartyEntry {
             btnRankUp.setTooltip(Tooltip.create(Component.translatable("screen.opacui.tooltip.promote", upRank.name())));
 
         btnKick = EntryButton.create(Component.translatable("screen.opacui.kick"), b -> {
-            Screen current = mc.screen;
+            Screen current = mc.gui.screen();
             if (current != null) {
-                mc.setScreen(new ConfirmActionScreen(
+                mc.gui.setScreen(new ConfirmActionScreen(
                         current,
                         Component.translatable("screen.opacui.confirm_title"),
                         Component.translatable("screen.opacui.confirm_kick", member.getUsername()),
@@ -87,16 +87,16 @@ public class MemberEntry extends AbstractPartyEntry {
                             PartyCommands.kick(mc, member.getUsername());
                             onAction.accept(
                                     Component.translatable("screen.opacui.feedback.kicked", member.getUsername()));
-                            mc.setScreen(current);
+                            mc.gui.setScreen(current);
                         }));
             }
         });
         btnKick.setTooltip(Tooltip.create(Component.translatable("screen.opacui.tooltip.kick")));
 
         btnTransfer = EntryButton.create(Component.translatable("screen.opacui.transfer"), b -> {
-            Screen current = mc.screen;
+            Screen current = mc.gui.screen();
             if (current != null) {
-                mc.setScreen(new ConfirmActionScreen(
+                mc.gui.setScreen(new ConfirmActionScreen(
                         current,
                         Component.translatable("screen.opacui.confirm_title"),
                         Component.translatable("screen.opacui.confirm_transfer", member.getUsername()),
@@ -104,7 +104,7 @@ public class MemberEntry extends AbstractPartyEntry {
                             PartyCommands.transferOwnership(mc, member.getUsername());
                             onAction.accept(
                                     Component.translatable("screen.opacui.feedback.transferred", member.getUsername()));
-                            mc.setScreen(current);
+                            mc.gui.setScreen(current);
                         }));
             }
         });

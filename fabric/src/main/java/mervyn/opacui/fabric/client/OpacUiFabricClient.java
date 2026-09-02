@@ -19,7 +19,7 @@ public class OpacUiFabricClient implements ClientModInitializer {
                 if (mc.level == null || mc.player == null || !PartyScreen.isAvailable(mc)) {
                     continue;
                 }
-                mc.setScreen(new PartyScreen(mc.screen));
+                mc.gui.setScreen(new PartyScreen(mc.gui.screen()));
             }
         });
     }

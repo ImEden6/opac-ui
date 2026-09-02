@@ -71,18 +71,18 @@ public class PartyActionBarWidget {
                         : Component.translatable("screen.opacui.leave_party"),
                 b -> {
                     if (this.localIsOwner) {
-                        mc.setScreen(new ConfirmActionScreen(
+                        mc.gui.setScreen(new ConfirmActionScreen(
                                 screen,
                                 Component.translatable("screen.opacui.confirm_title"),
                                 Component.translatable("screen.opacui.confirm_disband"),
                                 () -> {
                                     PartyCommands.destroyParty(mc);
-                                    mc.setScreen(null);
+                                    mc.gui.setScreen(null);
                                 }
                         ));
                     } else {
                         PartyCommands.leaveParty(mc);
-                        mc.setScreen(null);
+                        mc.gui.setScreen(null);
                     }
                 }
         ).bounds(width / 2 - 105, bottomY, 100, 20).build();

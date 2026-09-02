@@ -52,7 +52,7 @@ public class AllyEntry extends AbstractPartyEntry {
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        if (event.button() == 0 && Minecraft.getInstance().screen instanceof mervyn.opacui.client.gui.PartyScreen ps) {
+        if (event.button() == 0 && Minecraft.getInstance().gui.screen() instanceof mervyn.opacui.client.gui.PartyScreen ps) {
             ps.populateInputBox(resolveOwnerName());
         }
         return super.mouseClicked(event, doubleClick);

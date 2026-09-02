@@ -41,7 +41,7 @@ public class InviteEntry extends AbstractPartyEntry {
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        if (event.button() == 0 && Minecraft.getInstance().screen instanceof PartyScreen ps) {
+        if (event.button() == 0 && Minecraft.getInstance().gui.screen() instanceof PartyScreen ps) {
             ps.populateInputBox(invite.getUsername());
         }
         return super.mouseClicked(event, doubleClick);

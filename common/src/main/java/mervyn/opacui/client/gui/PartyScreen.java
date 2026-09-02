@@ -135,7 +135,7 @@ public class PartyScreen extends Screen {
 
         addRenderableWidget(Button.builder(
                 Component.translatable("gui.cancel"),
-                b -> minecraft.setScreen(parent)).bounds(width / 2 - 50, height / 2 + 28, 100, 20).build());
+                b -> minecraft.gui.setScreen(parent)).bounds(width / 2 - 50, height / 2 + 28, 100, 20).build());
     }
 
     /** State B — in a party. Build tab bar, lists & widgets. */
@@ -447,7 +447,7 @@ public class PartyScreen extends Screen {
 
     @Override
     public void onClose() {
-        minecraft.setScreen(parent);
+        minecraft.gui.setScreen(parent);
     }
 
     @Override
