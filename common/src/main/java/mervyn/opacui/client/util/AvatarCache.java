@@ -5,6 +5,7 @@ import com.mojang.authlib.minecraft.MinecraftProfileTexture;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.DefaultPlayerSkin;
 import net.minecraft.client.resources.SkinManager;
+import net.minecraft.core.UUIDUtil;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.Map;
@@ -84,13 +85,18 @@ public final class AvatarCache {
 
         GameProfile profile = new GameProfile(uuid, username);
 
+        // SkinManager's background fetch dereferences profile.getId(), so a name-only
+        // profile would NPE there and never load. Show the default skin instead.
+        if (uuid == null) {
+            return DefaultPlayerSkin.getDefaultSkin(UUIDUtil.getOrCreatePlayerUUID(profile));
+        }
+
         // 3. Request asynchronously via SkinManager if not requested recently
         SkinManager skinManager = mc.getSkinManager();
-        Object key = uuid != null ? uuid : username.toLowerCase();
 
-        Long lastReq = REQUESTED_TIMESTAMPS.get(key);
+        Long lastReq = REQUESTED_TIMESTAMPS.get(uuid);
         if (lastReq == null || now - lastReq > CACHE_TTL_MS) {
-            REQUESTED_TIMESTAMPS.put(key, now);
+            REQUESTED_TIMESTAMPS.put(uuid, now);
             skinManager.registerSkins(profile, (type, location, profileTexture) -> {
                 if (type == MinecraftProfileTexture.Type.SKIN) {
                     CachedSkin entry = new CachedSkin(location, System.currentTimeMillis());
@@ -100,6 +106,9 @@ public final class AvatarCache {
             }, true);
         }
 
-        return skinManager.getInsecureSkinLocation(profile);
+        // Don't read `profile` here: registerSkins' background thread clears and refills
+        // its property map, and iterating it concurrently throws a CME. A fresh profile
+        // has no textures anyway, so this is the default skin until the callback lands.
+        return DefaultPlayerSkin.getDefaultSkin(uuid);
     }
 }
