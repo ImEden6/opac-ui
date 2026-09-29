@@ -40,6 +40,7 @@ public class PartyHeaderWidget {
 
         if (localIsOwner) {
             partyNameBox = new EditBox(font, width / 2 - 100, 6, 140, 16, Component.translatable("screen.opacui.party_name_hint"));
+            partyNameBox.setMaxLength(100);
             partyNameBox.setValue(currentPartyName != null ? currentPartyName : "");
 
             btnRename = Button.builder(

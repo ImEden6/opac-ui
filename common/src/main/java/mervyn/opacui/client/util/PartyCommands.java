@@ -4,11 +4,11 @@ import net.minecraft.client.Minecraft;
 
 /**
  * Helper that fires OPAC's party commands.
- * All commands are under the stable prefix "openpac-parties".
+ * All commands are under the stable prefix "oparties".
  */
 public final class PartyCommands {
 
-    private static final String PREFIX = "openpac-parties";
+    private static final String PREFIX = "oparties";
 
     // ── Party lifecycle ───────────────────────────────────────────────────
 
@@ -30,7 +30,7 @@ public final class PartyCommands {
         if (newName == null) return;
         String sanitized = newName.replaceAll("[\\r\\n\\t]", "");
         String escaped = sanitized.replace("\\", "\\\\").replace("\"", "\\\"");
-        send(mc, "openpac player-config set parties.name \"" + escaped + "\"");
+        send(mc, "opac player-config set parties.name \"" + escaped + "\"");
     }
 
     // ── Member management ─────────────────────────────────────────────────
