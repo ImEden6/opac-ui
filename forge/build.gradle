@@ -30,12 +30,6 @@ dependencies {
 	shadowCommon(project(path: ":common", configuration: "transformProductionForge")) { transitive false }
 }
 
-loom {
-	forge {
-		mixinConfig "opacui.common.mixins.json"
-	}
-}
-
 processResources {
 	def version = project.version
 	inputs.property "version", version
