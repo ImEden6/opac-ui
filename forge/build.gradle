@@ -5,18 +5,10 @@ plugins {
 
 java.withSourcesJar()
 
-jar {
-	manifest {
-		attributes["MixinConfigs"] = "opacui.common.mixins.json"
-	}
-}
-
 minecraft {
 	runs {
 		configureEach {
 			workingDir = layout.projectDirectory.dir('run')
-			// Mixin requires either specifying the config via command line, or in the Manifest
-			args "--mixin.config=opacui.common.mixins.json"
 		}
 
 		register('client')

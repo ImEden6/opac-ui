@@ -11,9 +11,6 @@ description='''
 A client-side GUI addon for Open Parties and Claims, providing a full party management screen.
 '''
 
-[[mixins]]
-config="opacui.common.mixins.json"
-
 [[dependencies.opacui]]
     modId="neoforge"
     type="required"
