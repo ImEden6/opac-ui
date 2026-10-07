@@ -26,7 +26,7 @@ import xaero.pac.client.world.capability.api.ClientWorldCapabilityTypes;
 import xaero.pac.common.parties.party.member.PartyMemberRank;
 import xaero.pac.common.parties.party.member.api.IPartyMemberAPI;
 
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import java.util.List;
 import java.util.Objects;
@@ -391,7 +391,7 @@ public class PartyScreen extends Screen {
             return true;
         }
 
-        if (event.key() == GLFW.GLFW_KEY_ENTER) {
+        if (event.key() == InputConstants.KEY_RETURN) {
             if (headerWidget.handleEnterKey(minecraft, this::showFeedback, this::scheduleActionRefresh)) {
                 return true;
             }
@@ -399,7 +399,7 @@ public class PartyScreen extends Screen {
                 return true;
             }
         }
-        if (event.key() == GLFW.GLFW_KEY_ESCAPE) {
+        if (event.key() == InputConstants.KEY_ESCAPE) {
             onClose();
             return true;
         }

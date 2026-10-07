@@ -14,14 +14,14 @@ A client-side GUI addon for Open Parties and Claims, providing a full party mana
 [[dependencies.opacui]]
     modId="neoforge"
     type="required"
-    versionRange="[26.2.0.57,26.3)"
+    versionRange="[26.3.0.37-beta,26.4)"
     ordering="NONE"
     side="BOTH"
 
 [[dependencies.opacui]]
     modId="minecraft"
     type="required"
-    versionRange="[26.2,26.3)"
+    versionRange="[26.3,26.4)"
     ordering="NONE"
     side="BOTH"
 

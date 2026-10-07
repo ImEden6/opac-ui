@@ -6,7 +6,7 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.PlayerFaceExtractor;
 import net.minecraft.world.entity.player.PlayerSkin;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import java.util.List;
 import java.util.Set;
@@ -99,19 +99,19 @@ public class SuggestionDropdown {
     public boolean keyPressed(int keyCode, Consumer<String> onSelect) {
         if (!isVisible()) return false;
 
-        if (keyCode == GLFW.GLFW_KEY_UP) {
+        if (keyCode == InputConstants.KEY_UP) {
             selectedSuggestion = Math.max(0, selectedSuggestion - 1);
             return true;
         }
-        if (keyCode == GLFW.GLFW_KEY_DOWN) {
+        if (keyCode == InputConstants.KEY_DOWN) {
             selectedSuggestion = Math.min(suggestions.size() - 1, selectedSuggestion + 1);
             return true;
         }
-        if (keyCode == GLFW.GLFW_KEY_ENTER && selectedSuggestion >= 0) {
+        if (keyCode == InputConstants.KEY_RETURN && selectedSuggestion >= 0) {
             selectSuggestion(selectedSuggestion, onSelect);
             return true;
         }
-        if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
+        if (keyCode == InputConstants.KEY_ESCAPE) {
             visible = false;
             return true;
         }
