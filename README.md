@@ -35,12 +35,13 @@ opac-ui always requires [Open Parties and Claims](https://modrinth.com/mod/open-
 | `1.21.1/main` | 1.21.1 | Fabric, Forge, NeoForge | ≥ 1.21.1 | ≥ 15.x | 0.105.0+1.21.1 (Fabric) | Fabric and Forge (not needed on NeoForge) |
 | `26.1.2/main` | 26.1.2 | Fabric, Forge, NeoForge | ≥ 26.1.2 | not used | 0.145.4+26.1.2 (Fabric) | Fabric and Forge (not needed on NeoForge) |
 | `26.2/main` | 26.2 | Fabric, Forge, NeoForge | ≥ 26.2 | not used | 0.159.0+26.2 (Fabric) | Fabric and Forge (not needed on NeoForge) |
+| `26.3/main` | 26.3 | Fabric, Forge, NeoForge | ≥ 26.3 | not used | 0.162.0+26.3 (Fabric) | Fabric and Forge (not needed on NeoForge) |
 
 Notes:
 - Cloth Config was dropped starting with the `26.1.2/main` branch since it
   no longer ships a Forge build - the party screen there is built entirely
   with Minecraft's own UI components instead.
-- `26.1.2/main` and `26.2/main` also need Java 25 (bundled with the game;
+- `26.1.2/main`, `26.2/main` and `26.3/main` also need Java 25 (bundled with the game;
   only relevant when building from source).
 
 ## License
