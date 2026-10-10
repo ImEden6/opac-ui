@@ -1,0 +1,64 @@
+name: publish
+
+# Only a pushed version tag publishes. Tags are shared by every version branch, so they
+# carry the Minecraft version too: git tag v1.0.4+1.20.1 && git push origin v1.0.4+1.20.1
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    # Waits for approval in the Actions tab; the reviewer is set on the "release" environment.
+    environment: release
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@v4
+      - name: validate gradle wrapper
+        uses: gradle/actions/wrapper-validation@v4
+      - name: setup jdk
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      - name: setup gradle
+        uses: gradle/actions/setup-gradle@v4
+      - name: make gradle wrapper executable
+        run: chmod +x ./gradlew
+
+      - name: check the tag, project IDs and tokens
+        env:
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+          CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
+        run: |
+          prop() { grep "^$1=" gradle.properties | cut -d= -f2- | tr -d '\r' | xargs; }
+          expected="v$(prop mod_version)+$(prop minecraft_version)"
+          if [ "${GITHUB_REF_NAME}" != "${expected}" ]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} doesn't match gradle.properties, expected ${expected}"
+            exit 1
+          fi
+          modrinth=$(prop modrinth_project_id)
+          curseforge=$(prop curseforge_project_id)
+          if [ -z "${modrinth}" ] && [ -z "${curseforge}" ]; then
+            echo "::error::Set modrinth_project_id or curseforge_project_id in gradle.properties"
+            exit 1
+          fi
+          # A missing token makes publishMods silently do a dry run, which would look like a release.
+          if [ -n "${modrinth}" ] && [ -z "${MODRINTH_TOKEN}" ]; then
+            echo "::error::Add a MODRINTH_TOKEN secret to the release environment"
+            exit 1
+          fi
+          if [ -n "${curseforge}" ] && [ -z "${CURSEFORGE_TOKEN}" ]; then
+            echo "::error::Add a CURSEFORGE_TOKEN secret to the release environment"
+            exit 1
+          fi
+
+      # `build` also runs the tests (there are none yet).
+      - name: build
+        run: ./gradlew build
+
+      - name: publish
+        env:
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+          CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
+        run: ./gradlew publishMods

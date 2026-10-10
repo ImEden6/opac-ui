@@ -3,6 +3,7 @@ plugins {
 	id 'dev.architectury.loom' version '1.7-SNAPSHOT' apply false
 	id 'com.github.johnrengelman.shadow' version '8.1.1' apply false
 	id 'maven-publish'
+	id 'me.modmuss50.mod-publish-plugin' version '2.2.1' apply false
 }
 
 architectury {
@@ -27,6 +28,75 @@ subprojects {
 			url = "https://cursemaven.com"
 			content {
 				includeGroup "curse.maven"
+			}
+		}
+	}
+}
+
+// The release jar task (remapJar) is only created by each loader's own build script.
+evaluationDependsOnChildren()
+
+// Release notes are this version's section of CHANGELOG.md, so a release can't go out without one.
+// Copied into locals first: reading project properties inside a provider breaks the configuration cache.
+def releaseVersion = mod_version
+def releaseMinecraft = minecraft_version
+def releaseNotes = providers.fileContents(layout.projectDirectory.file('CHANGELOG.md')).asText.map { text ->
+	def section = text.replace('\r\n', '\n') =~ /(?ms)^## \[${java.util.regex.Pattern.quote(releaseVersion)}\][^\n]*\n(.*?)(?=^## \[|\z)/
+	if (!section.find())
+		throw new GradleException("CHANGELOG.md has no section for ${releaseVersion}")
+	section.group(1).trim()
+}
+
+// Run by .github/workflows/publish.yml on a version tag. A site with an empty project ID is skipped.
+// Without a token for every site it's a dry run that only writes what it would upload to
+// <loader>/build/publishMods.
+def modrinthId = modrinth_project_id.trim()
+def curseforgeId = curseforge_project_id.trim()
+def toModrinth = !modrinthId.isEmpty()
+def toCurseforge = !curseforgeId.isEmpty()
+def missingToken = (toModrinth && providers.environmentVariable('MODRINTH_TOKEN').getOrNull() == null)
+		|| (toCurseforge && providers.environmentVariable('CURSEFORGE_TOKEN').getOrNull() == null)
+
+// Loader name and required mods, as declared in each loader's mods.toml / fabric.mod.json.
+// The slugs are the same on Modrinth and CurseForge.
+def loaders = [
+	fabric  : [name: 'Fabric', requires: ['open-parties-and-claims', 'fabric-api', 'cloth-config']],
+	forge   : [name: 'Forge', requires: ['open-parties-and-claims', 'cloth-config']],
+]
+
+loaders.each { loader, info ->
+	project(":${loader}") {
+		apply plugin: 'me.modmuss50.mod-publish-plugin'
+
+		publishMods {
+			// Architectury Loom's release jar on every loader is remapJar; plain jar is the -dev one.
+			file = remapJar.archiveFile
+			changelog = releaseNotes
+			type = STABLE
+			displayName = "OPAC-UI ${releaseVersion} (${info.name} ${releaseMinecraft})"
+			modLoaders.add(loader)
+			dryRun = missingToken
+
+			if (toModrinth) {
+				modrinth {
+					projectId = modrinthId
+					accessToken = providers.environmentVariable('MODRINTH_TOKEN')
+					minecraftVersions.add(releaseMinecraft)
+					requires(*info.requires)
+				}
+			}
+
+			if (toCurseforge) {
+				curseforge {
+					projectId = curseforgeId
+					accessToken = providers.environmentVariable('CURSEFORGE_TOKEN')
+					minecraftVersions.add(releaseMinecraft)
+					javaVersions.add(JavaVersion.VERSION_17)
+					// Client-only mod: it does nothing on a dedicated server.
+					client = true
+					server = false
+					requires(*info.requires)
+				}
 			}
 		}
 	}
