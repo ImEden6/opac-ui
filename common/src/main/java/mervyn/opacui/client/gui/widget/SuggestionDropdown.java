@@ -3,8 +3,8 @@ package mervyn.opacui.client.gui.widget;
 import mervyn.opacui.client.util.AvatarCache;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.gui.components.PlayerFaceExtractor;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.PlayerFaceRenderer;
 import net.minecraft.world.entity.player.PlayerSkin;
 import org.lwjgl.glfw.GLFW;
 
@@ -55,7 +55,7 @@ public class SuggestionDropdown {
         visible = !suggestions.isEmpty();
     }
 
-    public void extractContent(GuiGraphicsExtractor g, Font font, Minecraft mc, int boxX, int boxY, int width) {
+    public void renderContent(GuiGraphics g, Font font, Minecraft mc, int boxX, int boxY, int width) {
         if (!isVisible()) return;
 
         int itemH = font.lineHeight + 4;
@@ -71,8 +71,8 @@ public class SuggestionDropdown {
             }
             String sName = suggestions.get(i);
             PlayerSkin skin = AvatarCache.getSkin(mc, null, sName);
-            PlayerFaceExtractor.extractRenderState(g, skin, boxX + 4, itemY + 1, 8);
-            g.text(font, sName, boxX + 16, itemY + 1, 0xFFFFFFFF);
+            PlayerFaceRenderer.draw(g, skin, boxX + 4, itemY + 1, 8);
+            g.drawString(font, sName, boxX + 16, itemY + 1, 0xFFFFFFFF);
         }
     }
 

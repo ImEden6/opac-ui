@@ -5,9 +5,9 @@ import mervyn.opacui.client.gui.PartyScreen;
 import mervyn.opacui.client.util.AvatarCache;
 import mervyn.opacui.client.util.PartyCommands;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.PlayerFaceExtractor;
+import net.minecraft.client.gui.components.PlayerFaceRenderer;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.PlayerSkin;
@@ -48,7 +48,7 @@ public class InviteEntry extends AbstractPartyEntry {
     }
 
     @Override
-    public void extractContent(GuiGraphicsExtractor g, int mouseX, int mouseY, boolean isHovered, float delta) {
+    public void renderContent(GuiGraphics g, int mouseX, int mouseY, boolean isHovered, float delta) {
         Minecraft mc = Minecraft.getInstance();
         int x = getContentX();
         int y = getContentY();
@@ -60,14 +60,14 @@ public class InviteEntry extends AbstractPartyEntry {
         int headSize = 12;
         int headX = x + 4;
         int headY = y + (entryHeight - headSize) / 2;
-        PlayerFaceExtractor.extractRenderState(g, skin, headX, headY, headSize);
+        PlayerFaceRenderer.draw(g, skin, headX, headY, headSize);
 
-        g.text(mc.font, invite.getUsername(), x + 22, y + (entryHeight - 8) / 2, 0xFFFFFF88);
+        g.drawString(mc.font, invite.getUsername(), x + 22, y + (entryHeight - 8) / 2, 0xFFFFFF88);
 
         int btnY = y + (entryHeight - BTN_H) / 2;
         btnRevoke.setX(x + entryWidth - BTN_W - 2);
         btnRevoke.setY(btnY);
-        btnRevoke.extractRenderState(g, mouseX, mouseY, delta);
+        btnRevoke.render(g, mouseX, mouseY, delta);
     }
 
     @Override

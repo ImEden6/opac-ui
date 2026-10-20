@@ -1,14 +1,14 @@
 package mervyn.opacui.client.gui.entry;
 
 import mervyn.opacui.client.util.AvatarCache;
-import net.minecraft.client.gui.components.PlayerFaceExtractor;
+import net.minecraft.client.gui.components.PlayerFaceRenderer;
 import net.minecraft.world.entity.player.PlayerSkin;
 import mervyn.opacui.client.gui.list.AbstractPartyEntry;
 import mervyn.opacui.client.gui.ConfirmActionScreen;
 import mervyn.opacui.client.util.PartyCommands;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
@@ -131,7 +131,7 @@ public class MemberEntry extends AbstractPartyEntry {
     }
 
     @Override
-    public void extractContent(GuiGraphicsExtractor g, int mouseX, int mouseY, boolean isHovered, float delta) {
+    public void renderContent(GuiGraphics g, int mouseX, int mouseY, boolean isHovered, float delta) {
         Minecraft mc = Minecraft.getInstance();
         int x = getContentX();
         int y = getContentY();
@@ -143,7 +143,7 @@ public class MemberEntry extends AbstractPartyEntry {
         int headSize = 12;
         int headX = x + 4;
         int headY = y + (entryHeight - headSize) / 2;
-        PlayerFaceExtractor.extractRenderState(g, skin, headX, headY, headSize);
+        PlayerFaceRenderer.draw(g, skin, headX, headY, headSize);
 
         // ── Text label ────────────────────────────────────────────────────
         MutableComponent dot = Component.literal(isOnline ? "●" : "○")
@@ -155,7 +155,7 @@ public class MemberEntry extends AbstractPartyEntry {
                 .append(Component.literal(star + " " + member.getUsername()).withStyle(s -> s.withColor(rankColor)));
         MutableComponent rankLabel = Component.literal(" [" + member.getRank().name() + "]")
                 .withStyle(ChatFormatting.DARK_GRAY);
-        g.text(mc.font, label.append(rankLabel), x + 22, y + (entryHeight - 8) / 2, 0xFFFFFFFF);
+        g.drawString(mc.font, label.append(rankLabel), x + 22, y + (entryHeight - 8) / 2, 0xFFFFFFFF);
 
         // ── Position & render buttons from right edge ──────────────────────
         int rightEdge = x + entryWidth - 2;
@@ -164,23 +164,23 @@ public class MemberEntry extends AbstractPartyEntry {
         if (btnTransfer.visible) {
             btnTransfer.setX(rightEdge - BTN_W);
             btnTransfer.setY(btnY);
-            btnTransfer.extractRenderState(g, mouseX, mouseY, delta);
+            btnTransfer.render(g, mouseX, mouseY, delta);
             rightEdge -= BTN_W + BTN_GAP;
         }
         if (btnKick.visible) {
             btnKick.setX(rightEdge - BTN_W);
             btnKick.setY(btnY);
-            btnKick.extractRenderState(g, mouseX, mouseY, delta);
+            btnKick.render(g, mouseX, mouseY, delta);
             rightEdge -= BTN_W + BTN_GAP;
         }
         if (btnRankUp.visible) {
             int half = BTN_W / 2 - 1;
             btnRankUp.setX(rightEdge - half);
             btnRankUp.setY(btnY);
-            btnRankUp.extractRenderState(g, mouseX, mouseY, delta);
+            btnRankUp.render(g, mouseX, mouseY, delta);
             btnRankDown.setX(rightEdge - half - BTN_GAP - half);
             btnRankDown.setY(btnY);
-            btnRankDown.extractRenderState(g, mouseX, mouseY, delta);
+            btnRankDown.render(g, mouseX, mouseY, delta);
         }
     }
 

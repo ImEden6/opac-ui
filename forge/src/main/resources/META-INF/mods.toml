@@ -1,5 +1,5 @@
 modLoader="javafml"
-loaderVersion="[64,)"
+loaderVersion="[61,)"
 license="LGPL-3.0-only"
 
 [[mods]]
@@ -14,14 +14,14 @@ A client-side GUI addon for Open Parties and Claims, providing a full party mana
 [[dependencies.opacui]]
     modId="forge"
     mandatory=true
-    versionRange="[64.0.11,)"
+    versionRange="[61.0.8,)"
     ordering="NONE"
     side="BOTH"
 
 [[dependencies.opacui]]
     modId="minecraft"
     mandatory=true
-    versionRange="[26.1.2,26.2)"
+    versionRange="[1.21.11]"
     ordering="NONE"
     side="BOTH"
 

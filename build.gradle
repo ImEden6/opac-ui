@@ -13,12 +13,12 @@ subprojects {
 
 	java {
 		toolchain {
-			languageVersion = JavaLanguageVersion.of(25)
+			languageVersion = JavaLanguageVersion.of(21)
 		}
 	}
 
 	tasks.withType(JavaCompile).configureEach {
-		options.release = 25
+		options.release = 21
 	}
 
 	afterEvaluate {
@@ -45,6 +45,9 @@ subprojects {
 		}
 	}
 }
+
+// Fabric's remapJar is only created by its own build script.
+evaluationDependsOnChildren()
 
 // Release notes are this version's section of CHANGELOG.md, so a release can't go out without one.
 // Copied into locals first: reading project properties inside a provider breaks the configuration cache.
@@ -80,8 +83,8 @@ loaders.each { loader, info ->
 		apply plugin: 'me.modmuss50.mod-publish-plugin'
 
 		publishMods {
-			// 26.x jars aren't remapped on any loader, so the plain jar is the release file.
-			file = jar.archiveFile
+			// Only Fabric remaps; Forge and NeoForge run on Mojang names.
+			file = loader == 'fabric' ? remapJar.archiveFile : jar.archiveFile
 			changelog = releaseNotes
 			type = STABLE
 			displayName = "OPAC-UI ${releaseVersion} (${info.name} ${releaseMinecraft})"
@@ -102,7 +105,7 @@ loaders.each { loader, info ->
 					projectId = curseforgeId
 					accessToken = providers.environmentVariable('CURSEFORGE_TOKEN')
 					minecraftVersions.add(releaseMinecraft)
-					javaVersions.add(JavaVersion.VERSION_25)
+					javaVersions.add(JavaVersion.VERSION_21)
 					// Client-only mod: it does nothing on a dedicated server.
 					client = true
 					server = false

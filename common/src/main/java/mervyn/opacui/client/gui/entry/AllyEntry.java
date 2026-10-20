@@ -3,7 +3,7 @@ package mervyn.opacui.client.gui.entry;
 import mervyn.opacui.client.gui.list.AbstractPartyEntry;
 import mervyn.opacui.client.util.PartyCommands;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
@@ -74,20 +74,20 @@ public class AllyEntry extends AbstractPartyEntry {
     }
 
     @Override
-    public void extractContent(GuiGraphicsExtractor g, int mouseX, int mouseY, boolean isHovered, float delta) {
+    public void renderContent(GuiGraphics g, int mouseX, int mouseY, boolean isHovered, float delta) {
         Minecraft mc = Minecraft.getInstance();
         int x = getContentX();
         int y = getContentY();
         int entryWidth = getContentWidth();
         int entryHeight = getContentHeight();
 
-        g.text(mc.font, "Allied: " + displayName, x + 4, y + (entryHeight - 8) / 2, 0xFF88FFAA);
+        g.drawString(mc.font, "Allied: " + displayName, x + 4, y + (entryHeight - 8) / 2, 0xFF88FFAA);
 
         if (canModify) {
             int btnY = y + (entryHeight - BTN_H) / 2;
             btnUnally.setX(x + entryWidth - BTN_W - 2);
             btnUnally.setY(btnY);
-            btnUnally.extractRenderState(g, mouseX, mouseY, delta);
+            btnUnally.render(g, mouseX, mouseY, delta);
         }
     }
 

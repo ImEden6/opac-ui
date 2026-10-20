@@ -1,5 +1,5 @@
 plugins {
-	id 'net.fabricmc.fabric-loom' version '1.16-SNAPSHOT'
+	id 'fabric-loom' version '1.16-SNAPSHOT'
 }
 
 loom {
@@ -22,14 +22,15 @@ loom {
 
 dependencies {
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
-	implementation "net.fabricmc:fabric-loader:${project.fabric_loader_version}"
+	mappings loom.officialMojangMappings()
+	modImplementation "net.fabricmc:fabric-loader:${project.fabric_loader_version}"
 
-	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 
 	// Dependencies
-	implementation "curse.maven:open-parties-and-claims-636608:${project.opac_fabric}"
+	modImplementation "curse.maven:open-parties-and-claims-636608:${project.opac_fabric}"
 	// OPAC's Fabric build needs Forge Config API Port (its config system, ported to Fabric)
-	implementation "curse.maven:forge-config-api-port-547434:${project.forgeconfigapiport_fabric}"
+	modImplementation "curse.maven:forge-config-api-port-547434:${project.forgeconfigapiport_fabric}"
 
 	// Visibility into common's source for the IDE/build ordering; common's actual
 	// classes are compiled straight into this module via the source(...) block below.

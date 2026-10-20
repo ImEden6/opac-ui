@@ -1,7 +1,7 @@
 name: publish
 
 # Only a pushed version tag publishes. Tags are shared by every version branch, so they
-# carry the Minecraft version too: git tag v1.0.5+26.1.2 && git push origin v1.0.5+26.1.2
+# carry the Minecraft version too: git tag v1.0.0+1.21.11 && git push origin v1.0.0+1.21.11
 on:
   push:
     tags: ['v*']

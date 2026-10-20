@@ -10,7 +10,7 @@ import mervyn.opacui.client.gui.widget.PartyHeaderWidget;
 import mervyn.opacui.client.gui.widget.SuggestionDropdown;
 import mervyn.opacui.client.util.PartyCommands;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.CharacterEvent;
@@ -301,27 +301,27 @@ public class PartyScreen extends Screen {
     // ─────────────────────────────────────────────────────────────────────
 
     @Override
-    public void extractBackground(GuiGraphicsExtractor g, int mouseX, int mouseY, float partial) {
-        super.extractBackground(g, mouseX, mouseY, partial);
+    public void renderBackground(GuiGraphics g, int mouseX, int mouseY, float partial) {
+        super.renderBackground(g, mouseX, mouseY, partial);
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partial) {
+    public void render(GuiGraphics g, int mouseX, int mouseY, float partial) {
         if (membersList != null) {
             if (!lastIsOwner) {
-                g.centeredText(font, title, width / 2, 18, -1);
+                g.drawCenteredString(font, title, width / 2, 18, -1);
             }
         } else {
-            g.centeredText(font, title, width / 2, 16, 0xFFFFFFFF);
-            g.centeredText(font, Component.translatable("screen.opacui.no_party"), width / 2, height / 2 - 20, 0xFFAAAAAA);
+            g.drawCenteredString(font, title, width / 2, 16, 0xFFFFFFFF);
+            g.drawCenteredString(font, Component.translatable("screen.opacui.no_party"), width / 2, height / 2 - 20, 0xFFAAAAAA);
         }
 
         if (feedbackTimer > 0 && feedbackText != null) {
-            g.centeredText(font, feedbackText, width / 2, height - BAR_Y_OFFSET - 14, 0xFFFFAA00);
+            g.drawCenteredString(font, feedbackText, width / 2, height - BAR_Y_OFFSET - 14, 0xFFFFAA00);
         }
 
-        super.extractRenderState(g, mouseX, mouseY, partial);
-        suggestionDropdown.extractContent(g, font, minecraft, width / 2 - 132, height - BAR_Y_OFFSET, 198);
+        super.render(g, mouseX, mouseY, partial);
+        suggestionDropdown.renderContent(g, font, minecraft, width / 2 - 132, height - BAR_Y_OFFSET, 198);
     }
 
     @Override
@@ -489,8 +489,8 @@ public class PartyScreen extends Screen {
         }
 
         @Override
-        public void extractContent(GuiGraphicsExtractor g, int mouseX, int mouseY, boolean isHovered, float delta) {
-            g.centeredText(Minecraft.getInstance().font, text, getContentX() + getContentWidth() / 2, getContentY() + (getContentHeight() - 8) / 2, 0xFF888888);
+        public void renderContent(GuiGraphics g, int mouseX, int mouseY, boolean isHovered, float delta) {
+            g.drawCenteredString(Minecraft.getInstance().font, text, getContentX() + getContentWidth() / 2, getContentY() + (getContentHeight() - 8) / 2, 0xFF888888);
         }
 
         @Override
