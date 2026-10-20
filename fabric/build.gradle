@@ -20,6 +20,15 @@ loom {
 	}
 }
 
+repositories {
+	maven {
+		url = "https://raw.githubusercontent.com/Fuzss/modresources/main/maven/"
+		content {
+			includeGroup "fuzs.forgeconfigapiport"
+		}
+	}
+}
+
 dependencies {
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
 	mappings loom.officialMojangMappings()
@@ -30,7 +39,7 @@ dependencies {
 	// Dependencies
 	modImplementation "curse.maven:open-parties-and-claims-636608:${project.opac_fabric}"
 	// OPAC's Fabric build needs Forge Config API Port (its config system, ported to Fabric)
-	modImplementation "curse.maven:forge-config-api-port-547434:${project.forgeconfigapiport_fabric}"
+	modImplementation "fuzs.forgeconfigapiport:forgeconfigapiport-fabric:${project.forgeconfigapiport_fabric}"
 
 	// Visibility into common's source for the IDE/build ordering; common's actual
 	// classes are compiled straight into this module via the source(...) block below.
