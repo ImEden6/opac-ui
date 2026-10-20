@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Now built against Open Parties and Claims 0.33.0 for Fabric, Forge and NeoForge.
 
+### Fixed
+- The mod now only loads on Minecraft 1.21.1. It used to accept any 1.21.x version and then crash on later ones such as 1.21.11, whose GUI and input code changed.
+
 ## [1.0.3] - 2026-09-29
 
 ### Fixed

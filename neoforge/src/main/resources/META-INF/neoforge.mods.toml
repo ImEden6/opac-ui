@@ -21,7 +21,7 @@ A client-side GUI addon for Open Parties and Claims, providing a full party mana
 [[dependencies.opacui]]
     modId="minecraft"
     type="required"
-    versionRange="[1.21.1,1.22)"
+    versionRange="[1.21.1]"
     ordering="NONE"
     side="BOTH"
 
