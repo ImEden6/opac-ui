@@ -9,6 +9,7 @@ import net.minecraft.resources.ResourceLocation;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Caches player skin ResourceLocations for GUI head rendering with TTL eviction.
@@ -83,6 +84,10 @@ public final class AvatarCache {
 
         if (uuid == null && (username == null || username.isEmpty())) {
             return getDefaultSkinLocation(uuid);
+        }
+
+        if (uuid == null) {
+            uuid = UUID.nameUUIDFromBytes(("OfflinePlayer:" + username).getBytes(StandardCharsets.UTF_8));
         }
 
         GameProfile profile = new GameProfile(uuid, username);
