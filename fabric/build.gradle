@@ -47,6 +47,9 @@ dependencies {
 	modImplementation "curse.maven:cloth-config-348521:${project.cloth_config_fabric}"
 	// OPAC's Fabric build needs Forge Config API Port (its config system, ported to Fabric)
 	modImplementation "maven.modrinth:forge-config-api-port:v21.1.6-1.21.1-Fabric"
+	// FCAP ships NightConfig nested in its jar, which the dev run doesn't load
+	implementation "com.electronwill.night-config:core:3.8.0"
+	implementation "com.electronwill.night-config:toml:3.8.0"
 	// Cloth Config needs its own basic-math lib (Rectangle/Point); curse.maven jars carry
 	// no dependency metadata so it never gets pulled in transitively
 	implementation "me.shedaniel.cloth:basic-math:0.6.1"
