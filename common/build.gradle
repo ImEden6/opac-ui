@@ -1,27 +1,17 @@
 plugins {
-	id 'architectury-plugin'
-	id 'dev.architectury.loom'
+	id 'org.spongepowered.gradle.vanilla' version '0.2.1-SNAPSHOT'
 }
 
-architectury {
-	common(rootProject.enabled_platforms.split(","))
+minecraft {
+	version(project.minecraft_version)
 }
 
 dependencies {
-	minecraft "com.mojang:minecraft:${project.minecraft_version}"
-	mappings loom.officialMojangMappings()
-
 	// Mod Dependencies for compilation in common
-	modImplementation "curse.maven:open-parties-and-claims-636608:${project.opac_fabric}"
-	modImplementation "curse.maven:cloth-config-348521:${project.cloth_config_fabric}"
-}
-
-tasks.withType(JavaCompile).configureEach {
-	it.options.release = 21
+	compileOnly "curse.maven:open-parties-and-claims-636608:${project.opac_neoforge}"
+	compileOnly "curse.maven:cloth-config-348521:${project.cloth_config_neoforge}"
 }
 
 java {
 	withSourcesJar()
-	sourceCompatibility = JavaVersion.VERSION_21
-	targetCompatibility = JavaVersion.VERSION_21
 }
