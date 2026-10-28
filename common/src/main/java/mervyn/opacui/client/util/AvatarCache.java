@@ -2,6 +2,7 @@ package mervyn.opacui.client.util;
 
 import com.mojang.authlib.GameProfile;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.client.resources.DefaultPlayerSkin;
 import net.minecraft.client.resources.SkinManager;
 import net.minecraft.core.UUIDUtil;
@@ -84,6 +85,11 @@ public final class AvatarCache {
 
         if (uuid == null && (username == null || username.isEmpty())) {
             return getDefaultSkinLocation(uuid);
+        }
+
+        if (uuid == null && mc.getConnection() != null) {
+            PlayerInfo info = mc.getConnection().getPlayerInfo(username);
+            if (info != null) return info.getSkin().texture();
         }
 
         GameProfile profile = new GameProfile(uuid != null ? uuid : UUIDUtil.createOfflinePlayerUUID(username), username);
