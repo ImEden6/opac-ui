@@ -4,6 +4,7 @@ import com.mojang.authlib.GameProfile;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.DefaultPlayerSkin;
 import net.minecraft.client.resources.SkinManager;
+import net.minecraft.core.UUIDUtil;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.Map;
@@ -85,7 +86,7 @@ public final class AvatarCache {
             return getDefaultSkinLocation(uuid);
         }
 
-        GameProfile profile = new GameProfile(uuid, username);
+        GameProfile profile = new GameProfile(uuid != null ? uuid : UUIDUtil.createOfflinePlayerUUID(username), username);
 
         // 3. Request via SkinManager if not requested recently
         SkinManager skinManager = mc.getSkinManager();
