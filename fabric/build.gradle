@@ -1,12 +1,5 @@
 plugins {
-	id 'architectury-plugin'
-	id 'dev.architectury.loom'
-	id 'com.github.johnrengelman.shadow'
-}
-
-architectury {
-	platformSetupLoomIde()
-	fabric()
+	id 'fabric-loom' version '1.16-SNAPSHOT'
 }
 
 loom {
@@ -42,18 +35,10 @@ repositories {
 	}
 }
 
-configurations {
-	common
-	shadowCommon
-	compileClasspath.extendsFrom common
-	runtimeClasspath.extendsFrom common
-	developmentFabric.extendsFrom common
-}
-
 dependencies {
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
 	mappings loom.officialMojangMappings()
-	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+	modImplementation "net.fabricmc:fabric-loader:${project.fabric_loader_version}"
 
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 
@@ -66,11 +51,16 @@ dependencies {
 	// no dependency metadata so it never gets pulled in transitively
 	implementation "me.shedaniel.cloth:basic-math:0.6.1"
 
-	common(project(path: ":common", configuration: "namedElements")) { transitive false }
-	shadowCommon(project(path: ":common", configuration: "transformProductionFabric")) { transitive false }
+	compileOnly project(":common")
+}
+
+compileJava {
+	source(project(":common").sourceSets.main.allSource)
 }
 
 processResources {
+	from project(":common").sourceSets.main.resources
+
 	def version = project.version
 	inputs.property "version", version
 
@@ -79,27 +69,10 @@ processResources {
 	}
 }
 
-shadowJar {
-	configurations = [project.configurations.shadowCommon]
-	archiveClassifier.set("dev-shadow")
-}
-
-remapJar {
-	input.set shadowJar.archiveFile
-	dependsOn shadowJar
-	archiveClassifier.set(null)
-}
-
-jar {
-	archiveClassifier.set("dev")
-}
-
-tasks.withType(JavaCompile).configureEach {
-	it.options.release = 21
-}
-
 java {
 	withSourcesJar()
-	sourceCompatibility = JavaVersion.VERSION_21
-	targetCompatibility = JavaVersion.VERSION_21
+}
+
+tasks.named("sourcesJar", Jar) {
+	from(project(":common").sourceSets.main.allSource)
 }
