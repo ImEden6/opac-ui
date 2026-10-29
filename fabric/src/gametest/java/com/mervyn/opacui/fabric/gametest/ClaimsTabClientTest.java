@@ -42,19 +42,24 @@ public class ClaimsTabClientTest implements FabricClientGameTest {
             context.waitTicks(5);
             context.takeScreenshot("claims-tab");
 
-            double[] firstRow = context.computeOnClient(mc -> {
-                PartyEntryList list = mc.gui.screen().children().stream()
-                        .filter(PartyEntryList.class::isInstance).map(PartyEntryList.class::cast)
-                        .findFirst().orElseThrow(() -> new AssertionError("Claims tab has no list"));
-                check(!list.children().isEmpty() && list.children().get(0) instanceof ClaimEntry, "Claims tab's first row isn't a ClaimEntry");
-                AbstractPartyEntry row = list.children().get(0);
-                int scale = mc.getWindow().getGuiScale();
-                return new double[]{(row.getContentX() + row.getContentWidth() / 2.0) * scale, (row.getContentY() + row.getContentHeight() / 2.0) * scale};
-            });
+            double[] firstRow = firstRow(context);
             context.getInput().setCursorPos(firstRow[0], firstRow[1]);
             context.waitTicks(5);
             context.takeScreenshot("claims-tab-hover");
+
         }
+    }
+
+    private static double[] firstRow(ClientGameTestContext context) {
+        return context.computeOnClient(mc -> {
+            PartyEntryList list = mc.gui.screen().children().stream()
+                    .filter(PartyEntryList.class::isInstance).map(PartyEntryList.class::cast)
+                    .findFirst().orElseThrow(() -> new AssertionError("Claims tab has no list"));
+            check(!list.children().isEmpty() && list.children().get(0) instanceof ClaimEntry, "Claims tab's first row isn't a ClaimEntry");
+            AbstractPartyEntry row = list.children().get(0);
+            int scale = mc.getWindow().getGuiScale();
+            return new double[]{(row.getContentX() + row.getContentWidth() / 2.0) * scale, (row.getContentY() + row.getContentHeight() / 2.0) * scale};
+        });
     }
 
     private static void playerCommand(ClientGameTestContext context, String command) {
