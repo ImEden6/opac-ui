@@ -38,14 +38,18 @@ public class ClaimEntry extends AbstractPartyEntry {
         this.forceloadLimit = forceloadLimit;
         this.dimensions = dimensions;
 
+        Component mapLabel = mapTarget != null ? Component.translatable("screen.opacui.claims.map")
+                : mapElsewhere != null ? Component.translatable("screen.opacui.claims.map_elsewhere", mapElsewhere)
+                : null;
         btnMap = Button.builder(Component.empty(), b -> WorldMapLink.open(Minecraft.getInstance(), mapTarget))
                 .size(MAP_BUTTON_SIZE, MAP_BUTTON_SIZE)
+                .createNarration(message -> Component.translatable("gui.narrate.button", Component.translatable("screen.opacui.claims.map_button")))
                 .build();
-        btnMap.visible = mapTarget != null || mapElsewhere != null;
+        btnMap.visible = mapLabel != null;
         btnMap.active = mapTarget != null;
-        btnMap.setTooltip(Tooltip.create(mapTarget != null
-                ? Component.translatable("screen.opacui.claims.map")
-                : Component.translatable("screen.opacui.claims.map_elsewhere", mapElsewhere == null ? "" : mapElsewhere)));
+        if (mapLabel != null) {
+            btnMap.setTooltip(Tooltip.create(mapLabel));
+        }
     }
 
     @Override
