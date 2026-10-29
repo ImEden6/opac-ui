@@ -26,6 +26,9 @@ import xaero.pac.client.claims.IClientClaimsManager;
 import xaero.pac.client.claims.api.IClientClaimsManagerAPI;
 import xaero.pac.client.claims.player.api.IClientPlayerClaimInfoAPI;
 import xaero.pac.common.claims.player.api.IPlayerClaimPosListAPI;
+import xaero.pac.common.claims.player.api.IPlayerDimensionClaimsAPI;
+import mervyn.opacui.platform.Services;
+import net.minecraft.world.level.ChunkPos;
 import xaero.pac.client.parties.party.api.IClientPartyAPI;
 import xaero.pac.client.parties.party.api.IClientPartyStorageAPI;
 import xaero.pac.client.world.capability.api.ClientWorldCapabilityTypes;
@@ -304,6 +307,7 @@ public class PartyScreen extends Screen {
         // NOT_SYNCED servers only send the local player's own counts.
         boolean ownOnly = claims instanceof IClientClaimsManager<?, ?, ?> internal && internal.getAlwaysUseLoadingValues();
         Map<UUID, IClientPlayerClaimInfoAPI> infos = claimInfos(claims);
+        boolean worldMap = Services.PLATFORM.isModLoaded("xaeroworldmap");
 
         party.getMemberInfoStream().sorted(MEMBER_ORDER).forEach(member -> {
             boolean isSelf = Objects.equals(member.getUUID(), localUUID);
@@ -311,8 +315,11 @@ public class PartyScreen extends Screen {
             IClientPlayerClaimInfoAPI info = infos.get(member.getUUID());
             int count = isSelf ? claims.getClaimCount() : info != null ? info.getClaimCount() : -1;
             int forceloads = isSelf ? claims.getForceloadCount() : info != null ? info.getForceloadCount() : -1;
+            ChunkPos mapTarget = worldMap && info != null ? nearestClaim(info) : null;
+            String mapElsewhere = worldMap && info != null && mapTarget == null ? otherClaimDimension(info) : null;
             list.addRow(new ClaimEntry(member, onlinePlayers.contains(member.getUUID()), count, forceloads,
-                    isSelf ? claims.getClaimLimit() : -1, isSelf ? claims.getForceloadLimit() : -1, dimensionLines(info)));
+                    isSelf ? claims.getClaimLimit() : -1, isSelf ? claims.getForceloadLimit() : -1, dimensionLines(info),
+                    mapTarget, mapElsewhere));
         });
 
         if (ownOnly) {
@@ -340,6 +347,27 @@ public class PartyScreen extends Screen {
         }
         if (!id.getNamespace().equals(Identifier.DEFAULT_NAMESPACE)) name.append(" (").append(id.getNamespace()).append(')');
         return name.toString();
+    }
+
+    private ChunkPos nearestClaim(IClientPlayerClaimInfoAPI info) {
+        if (minecraft.level == null || minecraft.player == null) return null;
+        IPlayerDimensionClaimsAPI here = info.getDimension(minecraft.level.dimension().identifier());
+        if (here == null) return null;
+        ChunkPos at = minecraft.player.chunkPosition();
+        return here.getStream()
+                .flatMap(IPlayerClaimPosListAPI::getStream)
+                .min(Comparator.comparingLong(c -> (long) (c.x - at.x) * (c.x - at.x) + (long) (c.z - at.z) * (c.z - at.z)))
+                .orElse(null);
+    }
+
+    private String otherClaimDimension(IClientPlayerClaimInfoAPI info) {
+        Identifier current = minecraft.level != null ? minecraft.level.dimension().identifier() : null;
+        return info.getStream()
+                .filter(e -> !e.getKey().equals(current) && e.getValue().getStream().mapToInt(IPlayerClaimPosListAPI::getCount).sum() > 0)
+                .map(Map.Entry::getKey)
+                .min(Comparator.comparing(Identifier::toString))
+                .map(PartyScreen::dimensionName)
+                .orElse(null);
     }
 
     private static Map<UUID, IClientPlayerClaimInfoAPI> claimInfos(IClientClaimsManagerAPI claims) {
