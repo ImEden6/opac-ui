@@ -3,11 +3,17 @@ package mervyn.opacui.fabric.platform;
 import mervyn.opacui.platform.IPlatformHelper;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.minecraft.client.KeyMapping;
+import net.fabricmc.loader.api.FabricLoader;
 
 public class FabricPlatformHelper implements IPlatformHelper {
 
     @Override
     public KeyMapping registerKeyBinding(KeyMapping keyMapping) {
         return KeyMappingHelper.registerKeyMapping(keyMapping);
+    }
+
+    @Override
+    public boolean isModLoaded(String modId) {
+        return FabricLoader.getInstance().isModLoaded(modId);
     }
 }
