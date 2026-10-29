@@ -17,6 +17,9 @@
   "screen.opacui.claims.dimension": "%s: %s",
   "screen.opacui.claims.syncing": "Loading claims...",
   "screen.opacui.claims.own_only": "This server only shares your own claims",
+  "screen.opacui.claims.map_button": "World Map",
+  "screen.opacui.claims.map": "Show nearest claim on the World Map",
+  "screen.opacui.claims.map_elsewhere": "Most claims are in %s",
 
   "screen.opacui.invite": "Invite",
   "screen.opacui.invite_placeholder": "Player name...",
