@@ -2,6 +2,7 @@ package mervyn.opacui.neoforge.platform;
 
 import mervyn.opacui.platform.IPlatformHelper;
 import net.minecraft.client.KeyMapping;
+import net.neoforged.fml.ModList;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,5 +15,10 @@ public class NeoForgePlatformHelper implements IPlatformHelper {
     public KeyMapping registerKeyBinding(KeyMapping keyMapping) {
         KEY_MAPPINGS.add(keyMapping);
         return keyMapping;
+    }
+
+    @Override
+    public boolean isModLoaded(String modId) {
+        return ModList.get().isLoaded(modId);
     }
 }
