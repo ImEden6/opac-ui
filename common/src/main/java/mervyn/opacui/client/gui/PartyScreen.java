@@ -10,6 +10,7 @@ import mervyn.opacui.client.gui.widget.PartyActionBarWidget;
 import mervyn.opacui.client.gui.widget.PartyHeaderWidget;
 import mervyn.opacui.client.gui.widget.SuggestionDropdown;
 import mervyn.opacui.client.util.PartyCommands;
+import mervyn.opacui.platform.Services;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -19,6 +20,7 @@ import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
+import net.minecraft.world.level.ChunkPos;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import xaero.pac.client.api.OpenPACClientAPI;
@@ -27,8 +29,6 @@ import xaero.pac.client.claims.api.IClientClaimsManagerAPI;
 import xaero.pac.client.claims.player.api.IClientPlayerClaimInfoAPI;
 import xaero.pac.common.claims.player.api.IPlayerClaimPosListAPI;
 import xaero.pac.common.claims.player.api.IPlayerDimensionClaimsAPI;
-import mervyn.opacui.platform.Services;
-import net.minecraft.world.level.ChunkPos;
 import xaero.pac.client.parties.party.api.IClientPartyAPI;
 import xaero.pac.client.parties.party.api.IClientPartyStorageAPI;
 import xaero.pac.client.world.capability.api.ClientWorldCapabilityTypes;
@@ -104,6 +104,7 @@ public class PartyScreen extends Screen {
     private List<Object> lastClaimsSnapshot = List.of();
     private int claimsCheckTicks;
     private int actionRefreshTicks;
+    private final boolean worldMap = Services.PLATFORM.isModLoaded("xaeroworldmap");
 
     public PartyScreen(Screen parent) {
         super(Component.translatable("screen.opacui.party_manager"));
@@ -307,7 +308,6 @@ public class PartyScreen extends Screen {
         // NOT_SYNCED servers only send the local player's own counts.
         boolean ownOnly = claims instanceof IClientClaimsManager<?, ?, ?> internal && internal.getAlwaysUseLoadingValues();
         Map<UUID, IClientPlayerClaimInfoAPI> infos = claimInfos(claims);
-        boolean worldMap = Services.PLATFORM.isModLoaded("xaeroworldmap");
 
         party.getMemberInfoStream().sorted(MEMBER_ORDER).forEach(member -> {
             boolean isSelf = Objects.equals(member.getUUID(), localUUID);
@@ -351,9 +351,12 @@ public class PartyScreen extends Screen {
 
     private ChunkPos nearestClaim(IClientPlayerClaimInfoAPI info) {
         if (minecraft.level == null || minecraft.player == null) return null;
-        IPlayerDimensionClaimsAPI here = info.getDimension(minecraft.level.dimension().identifier());
+        return nearestClaim(info, minecraft.level.dimension().identifier(), minecraft.player.chunkPosition());
+    }
+
+    public static ChunkPos nearestClaim(IClientPlayerClaimInfoAPI info, Identifier dimension, ChunkPos at) {
+        IPlayerDimensionClaimsAPI here = info.getDimension(dimension);
         if (here == null) return null;
-        ChunkPos at = minecraft.player.chunkPosition();
         return here.getStream()
                 .flatMap(IPlayerClaimPosListAPI::getStream)
                 .min(Comparator.comparingLong(c -> (long) (c.x - at.x) * (c.x - at.x) + (long) (c.z - at.z) * (c.z - at.z)))
@@ -361,12 +364,16 @@ public class PartyScreen extends Screen {
     }
 
     private String otherClaimDimension(IClientPlayerClaimInfoAPI info) {
-        Identifier current = minecraft.level != null ? minecraft.level.dimension().identifier() : null;
+        return otherClaimDimension(info, minecraft.level != null ? minecraft.level.dimension().identifier() : null);
+    }
+
+    public static String otherClaimDimension(IClientPlayerClaimInfoAPI info, Identifier current) {
         return info.getStream()
-                .filter(e -> !e.getKey().equals(current) && e.getValue().getStream().mapToInt(IPlayerClaimPosListAPI::getCount).sum() > 0)
-                .map(Map.Entry::getKey)
-                .min(Comparator.comparing(Identifier::toString))
-                .map(PartyScreen::dimensionName)
+                .filter(e -> !e.getKey().equals(current))
+                .map(e -> Map.entry(e.getKey(), e.getValue().getStream().mapToInt(IPlayerClaimPosListAPI::getCount).sum()))
+                .filter(e -> e.getValue() > 0)
+                .max(Map.Entry.comparingByValue())
+                .map(e -> dimensionName(e.getKey()))
                 .orElse(null);
     }
 
@@ -375,11 +382,15 @@ public class PartyScreen extends Screen {
                 .collect(Collectors.toMap(IClientPlayerClaimInfoAPI::getPlayerId, info -> info, (a, b) -> a));
     }
 
-    private static List<Object> claimsSnapshot(IClientPartyAPI party) {
+    private List<Object> claimsSnapshot(IClientPartyAPI party) {
         IClientClaimsManagerAPI claims = OpenPACClientAPI.get().getClaimsManager();
         if (claims.isLoading()) return List.of("loading");
         Map<UUID, IClientPlayerClaimInfoAPI> infos = claimInfos(claims);
         List<Object> snapshot = new ArrayList<>(List.of(claims.getClaimCount(), claims.getForceloadCount()));
+        if (worldMap && minecraft.level != null && minecraft.player != null) {
+            snapshot.add(minecraft.level.dimension());
+            snapshot.add(minecraft.player.chunkPosition());
+        }
         party.getMemberInfoStream().forEach(member -> {
             IClientPlayerClaimInfoAPI info = infos.get(member.getUUID());
             snapshot.add(info == null ? List.of() : List.of(info.getClaimCount(), info.getForceloadCount(), dimensionLines(info)));
