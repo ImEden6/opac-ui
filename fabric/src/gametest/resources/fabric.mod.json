@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "opacui-gametest",
+  "version": "1.0.0",
+  "name": "OPAC UI Game Tests",
+  "environment": "client",
+  "entrypoints": {
+    "fabric-client-gametest": [
+      "mervyn.opacui.fabric.gametest.ClaimsTabClientTest"
+    ]
+  },
+  "depends": {
+    "opacui": "*"
+  }
+}
