@@ -1,6 +1,7 @@
 package mervyn.opacui.client.gui;
 
 import mervyn.opacui.client.gui.entry.AllyEntry;
+import mervyn.opacui.client.gui.entry.ClaimEntry;
 import mervyn.opacui.client.gui.entry.InviteEntry;
 import mervyn.opacui.client.gui.entry.MemberEntry;
 import mervyn.opacui.client.gui.list.AbstractPartyEntry;
@@ -17,9 +18,14 @@ import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import xaero.pac.client.api.OpenPACClientAPI;
+import xaero.pac.client.claims.IClientClaimsManager;
+import xaero.pac.client.claims.api.IClientClaimsManagerAPI;
+import xaero.pac.client.claims.player.api.IClientPlayerClaimInfoAPI;
+import xaero.pac.common.claims.player.api.IPlayerClaimPosListAPI;
 import xaero.pac.client.parties.party.api.IClientPartyAPI;
 import xaero.pac.client.parties.party.api.IClientPartyStorageAPI;
 import xaero.pac.client.world.capability.api.ClientWorldCapabilityTypes;
@@ -28,7 +34,9 @@ import xaero.pac.common.parties.party.member.api.IPartyMemberAPI;
 
 import com.mojang.blaze3d.platform.InputConstants;
 
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -49,6 +57,13 @@ public class PartyScreen extends Screen {
     private static final int TAB_BTN_HEIGHT = 20;
     private static final int TAB_BTN_GAP = 4;
     private static final int LIST_TOP = TAB_BAR_Y + TAB_BTN_HEIGHT + 4;
+    private static final int CLAIMS_TAB = 3;
+
+    private static final Comparator<IPartyMemberAPI> MEMBER_ORDER = (a, b) -> {
+        if (a.isOwner()) return -1;
+        if (b.isOwner()) return 1;
+        return b.getRank().ordinal() - a.getRank().ordinal();
+    };
 
     private final Screen parent;
 
@@ -61,11 +76,13 @@ public class PartyScreen extends Screen {
     private PartyEntryList membersList;
     private PartyEntryList invitesList;
     private PartyEntryList alliesList;
+    private PartyEntryList claimsList;
     private PartyEntryList activeListWidget;
 
     private Button tabMembersBtn;
     private Button tabInvitesBtn;
     private Button tabAlliesBtn;
+    private Button tabClaimsBtn;
 
     // ── Feedback ──────────────────────────────────────────────────────────
     private Component feedbackText;
@@ -80,6 +97,7 @@ public class PartyScreen extends Screen {
     private boolean lastIsOwner;
     private PartyMemberRank lastLocalRank;
     private Set<UUID> lastOnlinePlayerIds = Set.of();
+    private long lastClaimsSignature;
     private int actionRefreshTicks;
 
     public PartyScreen(Screen parent) {
@@ -102,6 +120,7 @@ public class PartyScreen extends Screen {
         membersList = null;
         invitesList = null;
         alliesList = null;
+        claimsList = null;
         activeListWidget = null;
 
         IClientPartyAPI party = getParty();
@@ -156,6 +175,7 @@ public class PartyScreen extends Screen {
         if (headerWidget.getBtnRename() != null) addRenderableWidget(headerWidget.getBtnRename());
 
         // 2. Tab bar + lists
+        lastClaimsSignature = claimsSignature(party);
         buildLists(party, localUUID, localRank, localIsOwner, canModeratorPlus);
         addTabBar();
         showTab(savedTabIndex);
@@ -177,7 +197,7 @@ public class PartyScreen extends Screen {
     }
 
     private void addTabBar() {
-        int totalWidth = 3 * TAB_BTN_WIDTH + 2 * TAB_BTN_GAP;
+        int totalWidth = 4 * TAB_BTN_WIDTH + 3 * TAB_BTN_GAP;
         int startX = width / 2 - totalWidth / 2;
 
         tabMembersBtn = Button.builder(Component.translatable("screen.opacui.tab_members"), b -> showTab(0))
@@ -186,10 +206,13 @@ public class PartyScreen extends Screen {
                 .bounds(startX + (TAB_BTN_WIDTH + TAB_BTN_GAP), TAB_BAR_Y, TAB_BTN_WIDTH, TAB_BTN_HEIGHT).build();
         tabAlliesBtn = Button.builder(Component.translatable("screen.opacui.tab_allies"), b -> showTab(2))
                 .bounds(startX + 2 * (TAB_BTN_WIDTH + TAB_BTN_GAP), TAB_BAR_Y, TAB_BTN_WIDTH, TAB_BTN_HEIGHT).build();
+        tabClaimsBtn = Button.builder(Component.translatable("screen.opacui.tab_claims"), b -> showTab(CLAIMS_TAB))
+                .bounds(startX + 3 * (TAB_BTN_WIDTH + TAB_BTN_GAP), TAB_BAR_Y, TAB_BTN_WIDTH, TAB_BTN_HEIGHT).build();
 
         addRenderableWidget(tabMembersBtn);
         addRenderableWidget(tabInvitesBtn);
         addRenderableWidget(tabAlliesBtn);
+        addRenderableWidget(tabClaimsBtn);
     }
 
     /** Switches the visible tab: swaps which list is a registered widget, updates button/action-bar state. */
@@ -201,6 +224,7 @@ public class PartyScreen extends Screen {
         activeListWidget = switch (index) {
             case 1 -> invitesList;
             case 2 -> alliesList;
+            case CLAIMS_TAB -> claimsList;
             default -> membersList;
         };
         if (activeListWidget != null) {
@@ -209,6 +233,7 @@ public class PartyScreen extends Screen {
         if (tabMembersBtn != null) tabMembersBtn.active = index != 0;
         if (tabInvitesBtn != null) tabInvitesBtn.active = index != 1;
         if (tabAlliesBtn != null) tabAlliesBtn.active = index != 2;
+        if (tabClaimsBtn != null) tabClaimsBtn.active = index != CLAIMS_TAB;
         actionBarWidget.updateForTab(index);
     }
 
@@ -223,11 +248,7 @@ public class PartyScreen extends Screen {
                 : Set.of();
 
         party.getMemberInfoStream()
-                .sorted((a, b) -> {
-                    if (a.isOwner()) return -1;
-                    if (b.isOwner()) return 1;
-                    return b.getRank().ordinal() - a.getRank().ordinal();
-                })
+                .sorted(MEMBER_ORDER)
                 .forEach(member -> {
                     boolean isSelf = Objects.equals(member.getUUID(), localUUID);
                     boolean isOnline = onlinePlayers.contains(member.getUUID());
@@ -264,6 +285,68 @@ public class PartyScreen extends Screen {
                 }
             });
         }
+
+        claimsList = buildClaimsList(party, localUUID, onlinePlayers, listHeight);
+    }
+
+    private PartyEntryList buildClaimsList(IClientPartyAPI party, UUID localUUID, Set<UUID> onlinePlayers, int listHeight) {
+        PartyEntryList list = new PartyEntryList(minecraft, width, listHeight, LIST_TOP);
+        IClientClaimsManagerAPI claims = OpenPACClientAPI.get().getClaimsManager();
+        if (claims.isLoading()) {
+            list.addRow(new PlaceholderEntry(Component.translatable("screen.opacui.claims.syncing")));
+            return list;
+        }
+
+        // NOT_SYNCED servers only send the local player's own counts.
+        boolean ownOnly = claims instanceof IClientClaimsManager<?, ?, ?> internal && internal.getAlwaysUseLoadingValues();
+        Map<UUID, IClientPlayerClaimInfoAPI> infos = claims.getPlayerInfoStream()
+                .collect(Collectors.toMap(IClientPlayerClaimInfoAPI::getPlayerId, info -> info, (a, b) -> a));
+
+        party.getMemberInfoStream().sorted(MEMBER_ORDER).forEach(member -> {
+            boolean isSelf = Objects.equals(member.getUUID(), localUUID);
+            if (ownOnly && !isSelf) return;
+            IClientPlayerClaimInfoAPI info = infos.get(member.getUUID());
+            int count = isSelf ? claims.getClaimCount() : info != null ? info.getClaimCount() : 0;
+            int forceloads = isSelf ? claims.getForceloadCount() : info != null ? info.getForceloadCount() : 0;
+            list.addRow(new ClaimEntry(member, onlinePlayers.contains(member.getUUID()), count, forceloads,
+                    isSelf ? claims.getClaimLimit() : -1, isSelf ? claims.getForceloadLimit() : -1, dimensionLines(info)));
+        });
+
+        if (ownOnly) {
+            list.addRow(new PlaceholderEntry(Component.translatable("screen.opacui.claims.own_only")));
+        }
+        return list;
+    }
+
+    private static List<Component> dimensionLines(IClientPlayerClaimInfoAPI info) {
+        if (info == null) return List.of();
+        return info.getStream()
+                .map(e -> Map.entry(e.getKey(), e.getValue().getStream().mapToInt(IPlayerClaimPosListAPI::getCount).sum()))
+                .filter(e -> e.getValue() > 0)
+                .sorted(Map.Entry.comparingByKey(Comparator.comparing(Identifier::toString)))
+                .map(e -> (Component) Component.translatable("screen.opacui.claims.dimension", dimensionName(e.getKey()), e.getValue()))
+                .toList();
+    }
+
+    private static String dimensionName(Identifier id) {
+        StringBuilder name = new StringBuilder();
+        for (String word : id.getPath().split("_")) {
+            if (word.isEmpty()) continue;
+            if (!name.isEmpty()) name.append(' ');
+            name.append(Character.toUpperCase(word.charAt(0))).append(word.substring(1));
+        }
+        return name.toString();
+    }
+
+    private static long claimsSignature(IClientPartyAPI party) {
+        IClientClaimsManagerAPI claims = OpenPACClientAPI.get().getClaimsManager();
+        if (claims.isLoading()) return -1;
+        Set<UUID> memberIds = party.getMemberInfoStream().map(IPartyMemberAPI::getUUID).collect(Collectors.toSet());
+        long signature = claims.getClaimCount() * 31L + claims.getForceloadCount();
+        for (IClientPlayerClaimInfoAPI info : claims.getPlayerInfoStream().filter(i -> memberIds.contains(i.getPlayerId())).toList()) {
+            signature = signature * 31 + info.getClaimCount() * 7L + info.getForceloadCount();
+        }
+        return signature;
     }
 
     /** Dynamic in-place list update without full screen tear-down. */
@@ -359,6 +442,14 @@ public class PartyScreen extends Screen {
         if (!onlinePlayerIds.equals(lastOnlinePlayerIds)) {
             lastOnlinePlayerIds = onlinePlayerIds;
             refreshPartyLists();
+        }
+
+        if (party != null) {
+            long claimsSignature = claimsSignature(party);
+            if (claimsSignature != lastClaimsSignature) {
+                lastClaimsSignature = claimsSignature;
+                refreshPartyLists();
+            }
         }
 
         if (actionRefreshTicks > 0) {
