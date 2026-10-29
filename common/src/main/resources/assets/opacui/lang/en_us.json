@@ -11,6 +11,12 @@
   "screen.opacui.tab_members": "Members",
   "screen.opacui.tab_invites": "Invites",
   "screen.opacui.tab_allies": "Allies",
+  "screen.opacui.tab_claims": "Claims",
+
+  "screen.opacui.claims.counts": "%s claims · %s forceloaded",
+  "screen.opacui.claims.dimension": "%s: %s",
+  "screen.opacui.claims.syncing": "Loading claims...",
+  "screen.opacui.claims.own_only": "This server only shares your own claims",
 
   "screen.opacui.invite": "Invite",
   "screen.opacui.invite_placeholder": "Player name...",
