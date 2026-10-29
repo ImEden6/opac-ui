@@ -130,6 +130,23 @@ public class MemberEntry extends AbstractPartyEntry {
         btnTransfer.visible = localIsOwner && !isSelf && !member.isOwner();
     }
 
+    static void drawMember(GuiGraphics g, IPartyMemberAPI member, boolean isOnline, Component suffix, int x, int y, int entryHeight) {
+        Minecraft mc = Minecraft.getInstance();
+        PlayerSkin skin = AvatarCache.getSkin(mc, member.getUUID(), member.getUsername());
+        int headSize = 12;
+        PlayerFaceRenderer.draw(g, skin, x + 4, y + (entryHeight - headSize) / 2, headSize);
+
+        MutableComponent dot = Component.literal(isOnline ? "●" : "○")
+                .withStyle(isOnline ? ChatFormatting.GREEN : ChatFormatting.DARK_GRAY);
+        String star = member.isOwner() ? " ★" : "";
+        ChatFormatting rankColor = member.getRank().getColor();
+        MutableComponent label = Component.literal("")
+                .append(dot)
+                .append(Component.literal(star + " " + member.getUsername()).withStyle(s -> s.withColor(rankColor)))
+                .append(suffix);
+        g.drawString(mc.font, label, x + 22, y + (entryHeight - 8) / 2, 0xFFFFFFFF);
+    }
+
     @Override
     public void renderContent(GuiGraphics g, int mouseX, int mouseY, boolean isHovered, float delta) {
         Minecraft mc = Minecraft.getInstance();
@@ -138,24 +155,9 @@ public class MemberEntry extends AbstractPartyEntry {
         int entryWidth = getContentWidth();
         int entryHeight = getContentHeight();
 
-        // ── Player Face Avatar ────────────────────────────────────────────
-        PlayerSkin skin = AvatarCache.getSkin(mc, member.getUUID(), member.getUsername());
-        int headSize = 12;
-        int headX = x + 4;
-        int headY = y + (entryHeight - headSize) / 2;
-        PlayerFaceRenderer.draw(g, skin, headX, headY, headSize);
-
-        // ── Text label ────────────────────────────────────────────────────
-        MutableComponent dot = Component.literal(isOnline ? "●" : "○")
-                .withStyle(isOnline ? ChatFormatting.GREEN : ChatFormatting.DARK_GRAY);
-        String star = member.isOwner() ? " ★" : "";
-        ChatFormatting rankColor = member.getRank().getColor();
-        MutableComponent label = Component.literal("")
-                .append(dot)
-                .append(Component.literal(star + " " + member.getUsername()).withStyle(s -> s.withColor(rankColor)));
         MutableComponent rankLabel = Component.literal(" [" + member.getRank().name() + "]")
                 .withStyle(ChatFormatting.DARK_GRAY);
-        g.drawString(mc.font, label.append(rankLabel), x + 22, y + (entryHeight - 8) / 2, 0xFFFFFFFF);
+        drawMember(g, member, isOnline, rankLabel, x, y, entryHeight);
 
         // ── Position & render buttons from right edge ──────────────────────
         int rightEdge = x + entryWidth - 2;

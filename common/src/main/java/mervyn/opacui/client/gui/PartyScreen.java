@@ -34,6 +34,7 @@ import xaero.pac.common.parties.party.member.api.IPartyMemberAPI;
 
 import org.lwjgl.glfw.GLFW;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -97,7 +98,8 @@ public class PartyScreen extends Screen {
     private boolean lastIsOwner;
     private PartyMemberRank lastLocalRank;
     private Set<UUID> lastOnlinePlayerIds = Set.of();
-    private long lastClaimsSignature;
+    private List<Object> lastClaimsSnapshot = List.of();
+    private int claimsCheckTicks;
     private int actionRefreshTicks;
 
     public PartyScreen(Screen parent) {
@@ -175,7 +177,7 @@ public class PartyScreen extends Screen {
         if (headerWidget.getBtnRename() != null) addRenderableWidget(headerWidget.getBtnRename());
 
         // 2. Tab bar + lists
-        lastClaimsSignature = claimsSignature(party);
+        lastClaimsSnapshot = claimsSnapshot(party);
         buildLists(party, localUUID, localRank, localIsOwner, canModeratorPlus);
         addTabBar();
         showTab(savedTabIndex);
@@ -197,17 +199,18 @@ public class PartyScreen extends Screen {
     }
 
     private void addTabBar() {
-        int totalWidth = 4 * TAB_BTN_WIDTH + 3 * TAB_BTN_GAP;
+        int tabWidth = Math.min(TAB_BTN_WIDTH, (width - 16 - 3 * TAB_BTN_GAP) / 4);
+        int totalWidth = 4 * tabWidth + 3 * TAB_BTN_GAP;
         int startX = width / 2 - totalWidth / 2;
 
         tabMembersBtn = Button.builder(Component.translatable("screen.opacui.tab_members"), b -> showTab(0))
-                .bounds(startX, TAB_BAR_Y, TAB_BTN_WIDTH, TAB_BTN_HEIGHT).build();
+                .bounds(startX, TAB_BAR_Y, tabWidth, TAB_BTN_HEIGHT).build();
         tabInvitesBtn = Button.builder(Component.translatable("screen.opacui.tab_invites"), b -> showTab(1))
-                .bounds(startX + (TAB_BTN_WIDTH + TAB_BTN_GAP), TAB_BAR_Y, TAB_BTN_WIDTH, TAB_BTN_HEIGHT).build();
+                .bounds(startX + (tabWidth + TAB_BTN_GAP), TAB_BAR_Y, tabWidth, TAB_BTN_HEIGHT).build();
         tabAlliesBtn = Button.builder(Component.translatable("screen.opacui.tab_allies"), b -> showTab(2))
-                .bounds(startX + 2 * (TAB_BTN_WIDTH + TAB_BTN_GAP), TAB_BAR_Y, TAB_BTN_WIDTH, TAB_BTN_HEIGHT).build();
+                .bounds(startX + 2 * (tabWidth + TAB_BTN_GAP), TAB_BAR_Y, tabWidth, TAB_BTN_HEIGHT).build();
         tabClaimsBtn = Button.builder(Component.translatable("screen.opacui.tab_claims"), b -> showTab(CLAIMS_TAB))
-                .bounds(startX + 3 * (TAB_BTN_WIDTH + TAB_BTN_GAP), TAB_BAR_Y, TAB_BTN_WIDTH, TAB_BTN_HEIGHT).build();
+                .bounds(startX + 3 * (tabWidth + TAB_BTN_GAP), TAB_BAR_Y, tabWidth, TAB_BTN_HEIGHT).build();
 
         addRenderableWidget(tabMembersBtn);
         addRenderableWidget(tabInvitesBtn);
@@ -234,6 +237,7 @@ public class PartyScreen extends Screen {
         if (tabInvitesBtn != null) tabInvitesBtn.active = index != 1;
         if (tabAlliesBtn != null) tabAlliesBtn.active = index != 2;
         if (tabClaimsBtn != null) tabClaimsBtn.active = index != CLAIMS_TAB;
+        claimsCheckTicks = 0;
         actionBarWidget.updateForTab(index);
     }
 
@@ -299,15 +303,14 @@ public class PartyScreen extends Screen {
 
         // NOT_SYNCED servers only send the local player's own counts.
         boolean ownOnly = claims instanceof IClientClaimsManager<?, ?, ?> internal && internal.getAlwaysUseLoadingValues();
-        Map<UUID, IClientPlayerClaimInfoAPI> infos = claims.getPlayerInfoStream()
-                .collect(Collectors.toMap(IClientPlayerClaimInfoAPI::getPlayerId, info -> info, (a, b) -> a));
+        Map<UUID, IClientPlayerClaimInfoAPI> infos = claimInfos(claims);
 
         party.getMemberInfoStream().sorted(MEMBER_ORDER).forEach(member -> {
             boolean isSelf = Objects.equals(member.getUUID(), localUUID);
             if (ownOnly && !isSelf) return;
             IClientPlayerClaimInfoAPI info = infos.get(member.getUUID());
-            int count = isSelf ? claims.getClaimCount() : info != null ? info.getClaimCount() : 0;
-            int forceloads = isSelf ? claims.getForceloadCount() : info != null ? info.getForceloadCount() : 0;
+            int count = isSelf ? claims.getClaimCount() : info != null ? info.getClaimCount() : -1;
+            int forceloads = isSelf ? claims.getForceloadCount() : info != null ? info.getForceloadCount() : -1;
             list.addRow(new ClaimEntry(member, onlinePlayers.contains(member.getUUID()), count, forceloads,
                     isSelf ? claims.getClaimLimit() : -1, isSelf ? claims.getForceloadLimit() : -1, dimensionLines(info)));
         });
@@ -335,18 +338,35 @@ public class PartyScreen extends Screen {
             if (!name.isEmpty()) name.append(' ');
             name.append(Character.toUpperCase(word.charAt(0))).append(word.substring(1));
         }
+        if (!id.getNamespace().equals(Identifier.DEFAULT_NAMESPACE)) name.append(" (").append(id.getNamespace()).append(')');
         return name.toString();
     }
 
-    private static long claimsSignature(IClientPartyAPI party) {
+    private static Map<UUID, IClientPlayerClaimInfoAPI> claimInfos(IClientClaimsManagerAPI claims) {
+        return claims.getPlayerInfoStream()
+                .collect(Collectors.toMap(IClientPlayerClaimInfoAPI::getPlayerId, info -> info, (a, b) -> a));
+    }
+
+    private static List<Object> claimsSnapshot(IClientPartyAPI party) {
         IClientClaimsManagerAPI claims = OpenPACClientAPI.get().getClaimsManager();
-        if (claims.isLoading()) return -1;
-        Set<UUID> memberIds = party.getMemberInfoStream().map(IPartyMemberAPI::getUUID).collect(Collectors.toSet());
-        long signature = claims.getClaimCount() * 31L + claims.getForceloadCount();
-        for (IClientPlayerClaimInfoAPI info : claims.getPlayerInfoStream().filter(i -> memberIds.contains(i.getPlayerId())).toList()) {
-            signature = signature * 31 + info.getClaimCount() * 7L + info.getForceloadCount();
+        if (claims.isLoading()) return List.of("loading");
+        Map<UUID, IClientPlayerClaimInfoAPI> infos = claimInfos(claims);
+        List<Object> snapshot = new ArrayList<>(List.of(claims.getClaimCount(), claims.getForceloadCount()));
+        party.getMemberInfoStream().forEach(member -> {
+            IClientPlayerClaimInfoAPI info = infos.get(member.getUUID());
+            snapshot.add(info == null ? List.of() : List.of(info.getClaimCount(), info.getForceloadCount(), dimensionLines(info)));
+        });
+        return snapshot;
+    }
+
+    private void refreshClaimsList(IClientPartyAPI party) {
+        UUID localUUID = minecraft.player == null ? null : minecraft.player.getUUID();
+        double scroll = claimsList != null ? claimsList.scrollAmount() : 0;
+        claimsList = buildClaimsList(party, localUUID, lastOnlinePlayerIds, (height - LIST_BOTTOM_MARGIN) - LIST_TOP);
+        claimsList.setScrollAmount(scroll);
+        if (savedTabIndex == CLAIMS_TAB) {
+            showTab(CLAIMS_TAB);
         }
-        return signature;
     }
 
     /** Dynamic in-place list update without full screen tear-down. */
@@ -444,12 +464,13 @@ public class PartyScreen extends Screen {
             refreshPartyLists();
         }
 
-        if (party != null) {
-            long claimsSignature = claimsSignature(party);
-            if (claimsSignature != lastClaimsSignature) {
-                lastClaimsSignature = claimsSignature;
-                refreshPartyLists();
+        if (party != null && savedTabIndex == CLAIMS_TAB && claimsCheckTicks-- <= 0) {
+            List<Object> claimsSnapshot = claimsSnapshot(party);
+            if (!claimsSnapshot.equals(lastClaimsSnapshot)) {
+                lastClaimsSnapshot = claimsSnapshot;
+                refreshClaimsList(party);
             }
+            claimsCheckTicks = 20;
         }
 
         if (actionRefreshTicks > 0) {

@@ -1,23 +1,13 @@
 package mervyn.opacui.client.gui.entry;
 
 import mervyn.opacui.client.gui.list.AbstractPartyEntry;
-import mervyn.opacui.client.util.AvatarCache;
-import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.PlayerFaceRenderer;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.world.entity.player.PlayerSkin;
 import xaero.pac.common.parties.party.member.api.IPartyMemberAPI;
 
 import java.util.List;
 
-/**
- * A single row on the Claims tab: one party member's claim and forceload counts.
- * Renders: ● username ... 42/100 claims · 3/10 forceloaded, with a per-dimension
- * breakdown as a hover tooltip. Limits are only known for the local player.
- */
 public class ClaimEntry extends AbstractPartyEntry {
 
     private final IPartyMemberAPI member;
@@ -43,21 +33,12 @@ public class ClaimEntry extends AbstractPartyEntry {
         Minecraft mc = Minecraft.getInstance();
         int x = getContentX();
         int y = getContentY();
-        int entryWidth = getContentWidth();
         int entryHeight = getContentHeight();
 
-        PlayerSkin skin = AvatarCache.getSkin(mc, member.getUUID(), member.getUsername());
-        int headSize = 12;
-        PlayerFaceRenderer.draw(g, skin, x + 4, y + (entryHeight - headSize) / 2, headSize);
-
-        MutableComponent label = Component.literal(isOnline ? "●" : "○")
-                .withStyle(isOnline ? ChatFormatting.GREEN : ChatFormatting.DARK_GRAY)
-                .append(Component.literal(" " + member.getUsername()).withStyle(s -> s.withColor(member.getRank().getColor())));
-        int textY = y + (entryHeight - 8) / 2;
-        g.drawString(mc.font, label, x + 22, textY, 0xFFFFFFFF);
+        MemberEntry.drawMember(g, member, isOnline, Component.empty(), x, y, entryHeight);
 
         Component counts = Component.translatable("screen.opacui.claims.counts", count(claims, claimLimit), count(forceloads, forceloadLimit));
-        g.drawString(mc.font, counts, x + entryWidth - 4 - mc.font.width(counts), textY, 0xFFAAAAAA);
+        g.drawString(mc.font, counts, x + getContentWidth() - 4 - mc.font.width(counts), y + (entryHeight - 8) / 2, 0xFFAAAAAA);
 
         if (isHovered && !dimensions.isEmpty()) {
             g.setComponentTooltipForNextFrame(mc.font, dimensions, mouseX, mouseY);
@@ -65,6 +46,7 @@ public class ClaimEntry extends AbstractPartyEntry {
     }
 
     private static String count(int value, int limit) {
+        if (value < 0) return "?";
         return limit < 0 ? String.valueOf(value) : value + "/" + limit;
     }
 
