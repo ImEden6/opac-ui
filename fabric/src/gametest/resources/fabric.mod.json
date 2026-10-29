@@ -6,7 +6,7 @@
   "environment": "client",
   "entrypoints": {
     "fabric-client-gametest": [
-      "mervyn.opacui.fabric.gametest.ClaimsTabClientTest"
+      "com.mervyn.opacui.fabric.gametest.ClaimsTabClientTest"
     ]
   },
   "depends": {

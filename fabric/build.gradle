@@ -20,8 +20,6 @@ loom {
 	}
 }
 
-// Screenshot tests that drive a real client: ./gradlew :fabric:runClientGameTest.
-// They live in src/gametest and never end up in the release jar.
 fabricApi {
 	configureTests {
 		createSourceSet = true
