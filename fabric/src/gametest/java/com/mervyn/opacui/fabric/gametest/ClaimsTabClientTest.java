@@ -8,8 +8,12 @@ import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.Level;
 import xaero.pac.client.api.OpenPACClientAPI;
 import xaero.pac.client.claims.api.IClientClaimsManagerAPI;
+import xaero.pac.client.claims.player.api.IClientPlayerClaimInfoAPI;
 
 public class ClaimsTabClientTest implements FabricClientGameTest {
 
@@ -18,6 +22,7 @@ public class ClaimsTabClientTest implements FabricClientGameTest {
         try (TestSingleplayerContext world = context.worldBuilder().create()) {
             world.getClientWorld().waitForChunksRender();
             TestServerContext server = world.getServer();
+            ChunkPos home = context.computeOnClient(mc -> mc.player.chunkPosition());
 
             // OPAC's party commands only accept a real player, so these go out from the client like the mod's own.
             playerCommand(context, "oparties create");
@@ -35,6 +40,14 @@ public class ClaimsTabClientTest implements FabricClientGameTest {
                 IClientClaimsManagerAPI claims = OpenPACClientAPI.get().getClaimsManager();
                 check(claims.getClaimCount() == 3, "expected 3 claims, got " + claims.getClaimCount());
                 check(claims.getForceloadCount() == 1, "expected 1 forceload, got " + claims.getForceloadCount());
+
+                IClientPlayerClaimInfoAPI own = claims.getPlayerInfoStream()
+                        .filter(info -> info.getPlayerId().equals(mc.player.getUUID()))
+                        .findFirst().orElseThrow(() -> new AssertionError("no claim info for the player"));
+                Identifier overworld = Level.OVERWORLD.identifier();
+                check(home.equals(PartyScreen.nearestClaim(own, overworld, home)), "nearest Overworld claim isn't the home chunk");
+                check("The Nether".equals(PartyScreen.otherClaimDimension(own, overworld)), "expected the Nether as the other dimension");
+                check("Overworld".equals(PartyScreen.otherClaimDimension(own, Level.NETHER.identifier())), "expected the Overworld as the other dimension");
             });
 
             context.setScreen(() -> new PartyScreen(null));
@@ -46,7 +59,6 @@ public class ClaimsTabClientTest implements FabricClientGameTest {
             context.getInput().setCursorPos(firstRow[0], firstRow[1]);
             context.waitTicks(5);
             context.takeScreenshot("claims-tab-hover");
-
         }
     }
 
