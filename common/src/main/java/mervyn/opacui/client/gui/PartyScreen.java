@@ -3,8 +3,10 @@ package mervyn.opacui.client.gui;
 import me.shedaniel.clothconfig2.api.ConfigBuilder;
 import me.shedaniel.clothconfig2.api.ConfigCategory;
 import me.shedaniel.clothconfig2.gui.AbstractConfigScreen;
+import me.shedaniel.clothconfig2.gui.ClothConfigScreen;
 import me.shedaniel.clothconfig2.gui.entries.TooltipListEntry;
 import mervyn.opacui.client.gui.entry.AllyEntry;
+import mervyn.opacui.client.gui.entry.ClaimEntry;
 import mervyn.opacui.client.gui.entry.InviteEntry;
 import mervyn.opacui.client.gui.entry.MemberEntry;
 import mervyn.opacui.client.gui.widget.PartyActionBarWidget;
@@ -16,9 +18,14 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import xaero.pac.client.api.OpenPACClientAPI;
+import xaero.pac.client.claims.IClientClaimsManager;
+import xaero.pac.client.claims.api.IClientClaimsManagerAPI;
+import xaero.pac.client.claims.player.api.IClientPlayerClaimInfoAPI;
+import xaero.pac.common.claims.player.api.IPlayerClaimPosListAPI;
 import xaero.pac.client.parties.party.api.IClientPartyAPI;
 import xaero.pac.client.parties.party.api.IClientPartyStorageAPI;
 import xaero.pac.client.world.capability.api.ClientWorldCapabilityTypes;
@@ -27,7 +34,10 @@ import xaero.pac.common.parties.party.member.api.IPartyMemberAPI;
 
 import org.lwjgl.glfw.GLFW;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -43,6 +53,13 @@ public class PartyScreen extends Screen {
     private static final int CLOTH_BOTTOM_MARGIN = 72;
     private static final int BAR_Y_OFFSET = 68;
     private static final int BOTTOM_Y_OFFSET = 44;
+    private static final int CLAIMS_TAB = 3;
+
+    private static final Comparator<IPartyMemberAPI> MEMBER_ORDER = (a, b) -> {
+        if (a.isOwner()) return -1;
+        if (b.isOwner()) return 1;
+        return b.getRank().ordinal() - a.getRank().ordinal();
+    };
 
     private final Screen parent;
 
@@ -67,6 +84,8 @@ public class PartyScreen extends Screen {
     private boolean lastIsOwner;
     private PartyMemberRank lastLocalRank;
     private Set<UUID> lastOnlinePlayerIds = Set.of();
+    private List<Object> lastClaimsSnapshot = List.of();
+    private int claimsCheckTicks;
     private int actionRefreshTicks;
 
     public PartyScreen(Screen parent) {
@@ -143,6 +162,7 @@ public class PartyScreen extends Screen {
         if (headerWidget.getBtnRename() != null) addRenderableWidget(headerWidget.getBtnRename());
 
         // 2. Cloth Config Screen
+        lastClaimsSnapshot = claimsSnapshot(party);
         buildClothScreen(party, localUUID, localRank, localIsOwner, canModeratorPlus);
 
         // 3. Action Bar Widget
@@ -185,11 +205,7 @@ public class PartyScreen extends Screen {
                 : Set.of();
 
         party.getMemberInfoStream()
-                .sorted((a, b) -> {
-                    if (a.isOwner()) return -1;
-                    if (b.isOwner()) return 1;
-                    return b.getRank().ordinal() - a.getRank().ordinal();
-                })
+                .sorted(MEMBER_ORDER)
                 .forEach(member -> {
                     boolean isSelf = Objects.equals(member.getUUID(), localUUID);
                     boolean isOnline = onlinePlayers.contains(member.getUUID());
@@ -227,11 +243,87 @@ public class PartyScreen extends Screen {
             });
         }
 
+        // Claims Tab
+        addClaimEntries(builder.getOrCreateCategory(Component.translatable("screen.opacui.tab_claims")), party, localUUID, onlinePlayers);
+
         clothScreen = builder.build();
         if (savedTabIndex > 0 && clothScreen instanceof AbstractConfigScreen acs) {
             acs.selectedCategoryIndex = savedTabIndex;
         }
         clothScreen.init(mc, width, height - CLOTH_BOTTOM_MARGIN);
+    }
+
+    private void addClaimEntries(ConfigCategory category, IClientPartyAPI party, UUID localUUID, Set<UUID> onlinePlayers) {
+        IClientClaimsManagerAPI claims = OpenPACClientAPI.get().getClaimsManager();
+        if (claims.isLoading()) {
+            category.addEntry(new PlaceholderEntry(Component.translatable("screen.opacui.claims.syncing")));
+            return;
+        }
+
+        // NOT_SYNCED servers only send the local player's own counts.
+        boolean ownOnly = claims instanceof IClientClaimsManager<?, ?, ?> internal && internal.getAlwaysUseLoadingValues();
+        Map<UUID, IClientPlayerClaimInfoAPI> infos = claimInfos(claims);
+
+        party.getMemberInfoStream().sorted(MEMBER_ORDER).forEach(member -> {
+            boolean isSelf = Objects.equals(member.getUUID(), localUUID);
+            if (ownOnly && !isSelf) return;
+            IClientPlayerClaimInfoAPI info = infos.get(member.getUUID());
+            int count = isSelf ? claims.getClaimCount() : info != null ? info.getClaimCount() : -1;
+            int forceloads = isSelf ? claims.getForceloadCount() : info != null ? info.getForceloadCount() : -1;
+            category.addEntry(new ClaimEntry(member, onlinePlayers.contains(member.getUUID()), count, forceloads,
+                    isSelf ? claims.getClaimLimit() : -1, isSelf ? claims.getForceloadLimit() : -1, dimensionLines(info)));
+        });
+
+        if (ownOnly) {
+            category.addEntry(new PlaceholderEntry(Component.translatable("screen.opacui.claims.own_only")));
+        }
+    }
+
+    private static List<Component> dimensionLines(IClientPlayerClaimInfoAPI info) {
+        if (info == null) return List.of();
+        return info.getStream()
+                .map(e -> Map.entry(e.getKey(), e.getValue().getStream().mapToInt(IPlayerClaimPosListAPI::getCount).sum()))
+                .filter(e -> e.getValue() > 0)
+                .sorted(Map.Entry.comparingByKey(Comparator.comparing(ResourceLocation::toString)))
+                .map(e -> (Component) Component.translatable("screen.opacui.claims.dimension", dimensionName(e.getKey()), e.getValue()))
+                .toList();
+    }
+
+    private static String dimensionName(ResourceLocation id) {
+        StringBuilder name = new StringBuilder();
+        for (String word : id.getPath().split("_")) {
+            if (word.isEmpty()) continue;
+            if (!name.isEmpty()) name.append(' ');
+            name.append(Character.toUpperCase(word.charAt(0))).append(word.substring(1));
+        }
+        if (!id.getNamespace().equals(ResourceLocation.DEFAULT_NAMESPACE)) name.append(" (").append(id.getNamespace()).append(')');
+        return name.toString();
+    }
+
+    private static Map<UUID, IClientPlayerClaimInfoAPI> claimInfos(IClientClaimsManagerAPI claims) {
+        return claims.getPlayerInfoStream()
+                .collect(Collectors.toMap(IClientPlayerClaimInfoAPI::getPlayerId, info -> info, (a, b) -> a));
+    }
+
+    private List<Object> claimsSnapshot(IClientPartyAPI party) {
+        IClientClaimsManagerAPI claims = OpenPACClientAPI.get().getClaimsManager();
+        if (claims.isLoading()) return List.of("loading");
+        Map<UUID, IClientPlayerClaimInfoAPI> infos = claimInfos(claims);
+        List<Object> snapshot = new ArrayList<>(List.of(claims.getClaimCount(), claims.getForceloadCount()));
+        party.getMemberInfoStream().forEach(member -> {
+            IClientPlayerClaimInfoAPI info = infos.get(member.getUUID());
+            snapshot.add(info == null ? List.of() : List.of(info.getClaimCount(), info.getForceloadCount(), dimensionLines(info)));
+        });
+        return snapshot;
+    }
+
+    // Cloth rebuilds the whole tabbed screen, so the Claims list's scroll is carried over by hand.
+    private void refreshClaims() {
+        double scroll = clothScreen instanceof ClothConfigScreen ccs && ccs.listWidget != null ? ccs.listWidget.getScroll() : 0;
+        refreshPartyLists();
+        if (clothScreen instanceof ClothConfigScreen ccs && ccs.listWidget != null) {
+            ccs.listWidget.scrollTo(scroll, false);
+        }
     }
 
     /** Dynamic in-place list update without full screen tear-down. */
@@ -303,6 +395,7 @@ public class PartyScreen extends Screen {
             int currentTab = acs.selectedCategoryIndex;
             if (currentTab != savedTabIndex) {
                 savedTabIndex = currentTab;
+                claimsCheckTicks = 0;
                 actionBarWidget.updateForTab(savedTabIndex);
             }
         }
@@ -336,6 +429,15 @@ public class PartyScreen extends Screen {
         if (!onlinePlayerIds.equals(lastOnlinePlayerIds)) {
             lastOnlinePlayerIds = onlinePlayerIds;
             refreshPartyLists();
+        }
+
+        if (party != null && savedTabIndex == CLAIMS_TAB && claimsCheckTicks-- <= 0) {
+            List<Object> claimsSnapshot = claimsSnapshot(party);
+            if (!claimsSnapshot.equals(lastClaimsSnapshot)) {
+                lastClaimsSnapshot = claimsSnapshot;
+                refreshClaims();
+            }
+            claimsCheckTicks = 20;
         }
 
         if (actionRefreshTicks > 0) {
