@@ -139,29 +139,29 @@ public class MemberEntry extends TooltipListEntry<Void> {
         return super.mouseClicked(mouseX, mouseY, button);
     }
 
-    @Override
-    public void render(GuiGraphics g, int index, int y, int x, int entryWidth, int entryHeight, int mouseX, int mouseY,
-            boolean isHovered, float delta) {
+    static void drawMember(GuiGraphics g, IPartyMemberAPI member, boolean isOnline, Component suffix, int x, int y, int entryHeight) {
         Minecraft mc = Minecraft.getInstance();
-
-        // ── Player Face Avatar ────────────────────────────────────────────
         ResourceLocation skin = AvatarCache.getSkin(mc, member.getUUID(), member.getUsername());
         int headSize = 12;
-        int headX = x + 4;
-        int headY = y + (entryHeight - headSize) / 2;
-        PlayerFaceRenderer.draw(g, skin, headX, headY, headSize);
+        PlayerFaceRenderer.draw(g, skin, x + 4, y + (entryHeight - headSize) / 2, headSize);
 
-        // ── Text label ────────────────────────────────────────────────────
         MutableComponent dot = Component.literal(isOnline ? "●" : "○")
                 .withStyle(isOnline ? ChatFormatting.GREEN : ChatFormatting.DARK_GRAY);
         String star = member.isOwner() ? " ★" : "";
         ChatFormatting rankColor = member.getRank().getColor();
         MutableComponent label = Component.literal("")
                 .append(dot)
-                .append(Component.literal(star + " " + member.getUsername()).withStyle(s -> s.withColor(rankColor)));
+                .append(Component.literal(star + " " + member.getUsername()).withStyle(s -> s.withColor(rankColor)))
+                .append(suffix);
+        g.drawString(mc.font, label, x + 22, y + (entryHeight - 8) / 2, 0xFFFFFFFF, false);
+    }
+
+    @Override
+    public void render(GuiGraphics g, int index, int y, int x, int entryWidth, int entryHeight, int mouseX, int mouseY,
+            boolean isHovered, float delta) {
         MutableComponent rankLabel = Component.literal(" [" + member.getRank().name() + "]")
                 .withStyle(ChatFormatting.DARK_GRAY);
-        g.drawString(mc.font, label.append(rankLabel), x + 22, y + (entryHeight - 8) / 2, 0xFFFFFFFF, false);
+        drawMember(g, member, isOnline, rankLabel, x, y, entryHeight);
 
         // ── Position & render buttons from right edge ──────────────────────
         int rightEdge = x + entryWidth - 2;
