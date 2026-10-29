@@ -5,10 +5,6 @@ pluginManagement {
 			url = 'https://maven.fabricmc.net/'
 		}
 		maven {
-			name = 'Architectury'
-			url = 'https://maven.architectury.dev/'
-		}
-		maven {
 			name = 'Sponge'
 			url = 'https://repo.spongepowered.org/repository/maven-public/'
 		}
@@ -19,6 +15,10 @@ pluginManagement {
 		mavenCentral()
 		gradlePluginPortal()
 	}
+}
+
+plugins {
+	id 'org.gradle.toolchains.foojay-resolver-convention' version '0.8.0'
 }
 
 rootProject.name = 'opacui'

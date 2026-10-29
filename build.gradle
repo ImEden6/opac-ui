@@ -1,20 +1,22 @@
 plugins {
-	id 'architectury-plugin' version '3.4-SNAPSHOT'
-	id 'dev.architectury.loom' version '1.7-SNAPSHOT' apply false
-	id 'com.github.johnrengelman.shadow' version '8.1.1' apply false
+	id 'fabric-loom' version '1.9-SNAPSHOT' apply false
+	id 'net.neoforged.moddev.legacyforge' version '2.0.77' apply false
 	id 'maven-publish'
 	id 'me.modmuss50.mod-publish-plugin' version '2.2.1' apply false
 }
 
-architectury {
-	minecraft = rootProject.minecraft_version
-}
-
 subprojects {
+	apply plugin: 'java'
 	apply plugin: 'maven-publish'
 
 	version = rootProject.mod_version
 	group = rootProject.maven_group
+
+	java {
+		toolchain {
+			languageVersion = JavaLanguageVersion.of(17)
+		}
+	}
 
 	afterEvaluate {
 		base {
@@ -33,7 +35,7 @@ subprojects {
 	}
 }
 
-// The release jar task (remapJar) is only created by each loader's own build script.
+// The release jar tasks (remapJar, reobfJar) are only created by each loader's own build script.
 evaluationDependsOnChildren()
 
 // Release notes are this version's section of CHANGELOG.md, so a release can't go out without one.
@@ -69,8 +71,8 @@ loaders.each { loader, info ->
 		apply plugin: 'me.modmuss50.mod-publish-plugin'
 
 		publishMods {
-			// Architectury Loom's release jar on every loader is remapJar; plain jar is the -dev one.
-			file = remapJar.archiveFile
+			// Forge 1.20.1 still runs on SRG names, so its release jar is the reobfuscated one.
+			file = loader == 'fabric' ? remapJar.archiveFile : reobfJar.archiveFile
 			changelog = releaseNotes
 			type = STABLE
 			displayName = "OPAC-UI ${releaseVersion} (${info.name} ${releaseMinecraft})"
