@@ -1,36 +1,41 @@
 plugins {
-	id 'architectury-plugin'
-	id 'dev.architectury.loom'
-	id 'com.github.johnrengelman.shadow'
+	id 'net.neoforged.moddev.legacyforge'
 }
 
-architectury {
-	platformSetupLoomIde()
-	forge()
-}
+legacyForge {
+	version = project.forge_version
 
-configurations {
-	common
-	shadowCommon
-	compileClasspath.extendsFrom common
-	runtimeClasspath.extendsFrom common
-	developmentForge.extendsFrom common
+	runs {
+		client {
+			client()
+		}
+		server {
+			server()
+		}
+	}
+
+	mods {
+		opacui {
+			sourceSet sourceSets.main
+		}
+	}
 }
 
 dependencies {
-	minecraft "com.mojang:minecraft:${project.minecraft_version}"
-	mappings loom.officialMojangMappings()
-	forge "net.minecraftforge:forge:${project.forge_version}"
+	compileOnly project(":common")
 
 	// Dependencies provided by user for Forge
 	modImplementation "curse.maven:cloth-config-348521:${project.cloth_config_forge}"
 	modImplementation "curse.maven:open-parties-and-claims-636608:${project.opac_forge}"
+}
 
-	common(project(path: ":common", configuration: "namedElements")) { transitive false }
-	shadowCommon(project(path: ":common", configuration: "transformProductionForge")) { transitive false }
+compileJava {
+	source(project(":common").sourceSets.main.allSource)
 }
 
 processResources {
+	from project(":common").sourceSets.main.resources
+
 	def version = project.version
 	inputs.property "version", version
 
@@ -39,28 +44,14 @@ processResources {
 	}
 }
 
-shadowJar {
-	exclude "fabric.mod.json"
-	configurations = [project.configurations.shadowCommon]
-	archiveClassifier.set("dev-shadow")
+java {
+	withSourcesJar()
 }
 
-remapJar {
-	input.set shadowJar.archiveFile
-	dependsOn shadowJar
-	archiveClassifier.set(null)
+tasks.named("sourcesJar", Jar) {
+	from(project(":common").sourceSets.main.allSource)
 }
 
 jar {
-	archiveClassifier.set("dev")
-}
-
-tasks.withType(JavaCompile).configureEach {
-	it.options.release = 17
-}
-
-java {
-	withSourcesJar()
-	sourceCompatibility = JavaVersion.VERSION_17
-	targetCompatibility = JavaVersion.VERSION_17
+	finalizedBy 'reobfJar'
 }
