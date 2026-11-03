@@ -4,6 +4,9 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.util.FormattedCharSequence;
+
+import java.util.List;
 
 /**
  * A minimal yes/no confirmation dialog placed over the current screen.
@@ -24,60 +27,48 @@ public class ConfirmActionScreen extends Screen {
         this.onConfirm = onConfirm;
     }
 
-    private Button confirmButton;
-    private Button cancelButton;
+    private static final int BOX_W = 240;
+
+    private List<FormattedCharSequence> lines;
+    private int boxX;
+    private int boxY;
+    private int boxH;
 
     @Override
     protected void init() {
         super.init();
-        confirmButton = addRenderableWidget(Button.builder(
+        lines = font.split(message, 220);
+        int msgHeight = Math.max(1, lines.size()) * (font.lineHeight + 2);
+        boxH = 24 + msgHeight + 36;
+        boxX = Math.max(SCREEN_MARGIN, Math.min((width - BOX_W) / 2, width - BOX_W - SCREEN_MARGIN));
+        boxY = Math.max(SCREEN_MARGIN, Math.min((height - boxH) / 2, height - boxH - SCREEN_MARGIN));
+        int cx = boxX + BOX_W / 2;
+        int btnY = boxY + 24 + lines.size() * (font.lineHeight + 2) + 8;
+
+        addRenderableWidget(Button.builder(
                 Component.translatable("screen.opacui.confirm"),
                 b -> onConfirm.run()
-        ).bounds(0, 0, 100, 20).build());
+        ).bounds(cx - 105, btnY, 100, 20).build());
 
-        cancelButton = addRenderableWidget(Button.builder(
+        addRenderableWidget(Button.builder(
                 Component.translatable("screen.opacui.cancel"),
                 b -> minecraft.setScreen(parent)
-        ).bounds(0, 0, 100, 20).build());
+        ).bounds(cx + 5, btnY, 100, 20).build());
     }
 
     @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float delta) {
         renderBackground(g, mouseX, mouseY, delta);
 
-        var lines = font.split(message, 220);
-        int lineCount = Math.max(1, lines.size());
-        int msgHeight = lineCount * (font.lineHeight + 2);
-        int boxW = 240;
-        int boxH = 24 + msgHeight + 36;
+        g.fill(boxX - 2, boxY - 2, boxX + BOX_W + 2, boxY + boxH + 2, 0xFF222222);
+        g.fill(boxX, boxY, boxX + BOX_W, boxY + boxH, 0xFF333333);
 
-        int x = (width - boxW) / 2;
-        int y = (height - boxH) / 2;
-        x = Math.max(SCREEN_MARGIN, Math.min(x, width - boxW - SCREEN_MARGIN));
-        y = Math.max(SCREEN_MARGIN, Math.min(y, height - boxH - SCREEN_MARGIN));
-        int boxCenterX = x + boxW / 2;
+        g.drawCenteredString(font, title, boxX + BOX_W / 2, boxY + 8, 0xFFFFAA00);
 
-        g.fill(x - 2, y - 2, x + boxW + 2, y + boxH + 2, 0xFF222222);
-        g.fill(x, y, x + boxW, y + boxH, 0xFF333333);
-
-        g.drawCenteredString(font, title, boxCenterX, y + 8, 0xFFFFAA00);
-
-        int msgColor = 0xFFDDDDDD;
-        int lineY = y + 24;
+        int lineY = boxY + 24;
         for (var line : lines) {
-            g.drawString(font, line, x + 10, lineY, msgColor, false);
+            g.drawString(font, line, boxX + 10, lineY, 0xFFDDDDDD, false);
             lineY += font.lineHeight + 2;
-        }
-
-        int btnY = lineY + 8;
-        int cx = boxCenterX;
-        if (confirmButton != null) {
-            confirmButton.setX(cx - 105);
-            confirmButton.setY(btnY);
-        }
-        if (cancelButton != null) {
-            cancelButton.setX(cx + 5);
-            cancelButton.setY(btnY);
         }
 
         super.render(g, mouseX, mouseY, delta);
