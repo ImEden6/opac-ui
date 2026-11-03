@@ -76,6 +76,7 @@ public class PartyScreen extends Screen {
 
     // ── Feedback ──────────────────────────────────────────────────────────
     private Component feedbackText;
+    private final MemberEntry.ShareState shareState = new MemberEntry.ShareState(this::showFeedback);
     private int feedbackTimer;
 
     // ── Tab & State Tracking ─────────────────────────────────────────────
@@ -86,7 +87,6 @@ public class PartyScreen extends Screen {
     private int lastAllyCount;
     private boolean lastIsOwner;
     private PartyMemberRank lastLocalRank;
-    private Set<UUID> lastOnlinePlayerIds = Set.of();
     private List<Object> lastClaimsSnapshot = List.of();
     private int claimsCheckTicks;
     private int actionRefreshTicks;
@@ -204,16 +204,11 @@ public class PartyScreen extends Screen {
 
         // Members Tab
         ConfigCategory membersCategory = builder.getOrCreateCategory(Component.translatable("screen.opacui.tab_members"));
-        Set<UUID> onlinePlayers = minecraft.getConnection() != null
-                ? minecraft.getConnection().getOnlinePlayers().stream().map(pi -> pi.getProfile().getId()).collect(Collectors.toSet())
-                : Set.of();
-
         party.getMemberInfoStream()
                 .sorted(MEMBER_ORDER)
                 .forEach(member -> {
                     boolean isSelf = Objects.equals(member.getUUID(), localUUID);
-                    boolean isOnline = onlinePlayers.contains(member.getUUID());
-                    membersCategory.addEntry(new MemberEntry(member, localRank, localIsOwner, isSelf, isOnline, msg -> {
+                    membersCategory.addEntry(new MemberEntry(member, localRank, localIsOwner, isSelf, shareState, msg -> {
                         showFeedback(msg);
                         scheduleActionRefresh();
                     }));
@@ -248,7 +243,7 @@ public class PartyScreen extends Screen {
         }
 
         // Claims Tab
-        addClaimEntries(builder.getOrCreateCategory(Component.translatable("screen.opacui.tab_claims")), party, localUUID, onlinePlayers);
+        addClaimEntries(builder.getOrCreateCategory(Component.translatable("screen.opacui.tab_claims")), party, localUUID);
 
         clothScreen = builder.build();
         if (savedTabIndex > 0 && clothScreen instanceof AbstractConfigScreen acs) {
@@ -257,7 +252,7 @@ public class PartyScreen extends Screen {
         clothScreen.init(mc, width, height - CLOTH_BOTTOM_MARGIN);
     }
 
-    private void addClaimEntries(ConfigCategory category, IClientPartyAPI party, UUID localUUID, Set<UUID> onlinePlayers) {
+    private void addClaimEntries(ConfigCategory category, IClientPartyAPI party, UUID localUUID) {
         IClientClaimsManagerAPI claims = OpenPACClientAPI.get().getClaimsManager();
         if (claims.isLoading()) {
             category.addEntry(new PlaceholderEntry(Component.translatable("screen.opacui.claims.syncing")));
@@ -276,7 +271,7 @@ public class PartyScreen extends Screen {
             int forceloads = isSelf ? claims.getForceloadCount() : info != null ? info.getForceloadCount() : -1;
             ChunkPos mapTarget = worldMap && info != null ? nearestClaim(info) : null;
             String mapElsewhere = worldMap && info != null && mapTarget == null ? otherClaimDimension(info) : null;
-            category.addEntry(new ClaimEntry(member, onlinePlayers.contains(member.getUUID()), count, forceloads,
+            category.addEntry(new ClaimEntry(member, count, forceloads,
                     isSelf ? claims.getClaimLimit() : -1, isSelf ? claims.getForceloadLimit() : -1, dimensionLines(info),
                     mapTarget, mapElsewhere));
         });
@@ -296,7 +291,7 @@ public class PartyScreen extends Screen {
                 .toList();
     }
 
-    private static String dimensionName(ResourceLocation id) {
+    public static String dimensionName(ResourceLocation id) {
         StringBuilder name = new StringBuilder();
         for (String word : id.getPath().split("_")) {
             if (word.isEmpty()) continue;
@@ -430,6 +425,7 @@ public class PartyScreen extends Screen {
         if (clothScreen != null) {
             clothScreen.tick();
         }
+        shareState.tick();
 
         if (clothScreen instanceof AbstractConfigScreen acs) {
             int currentTab = acs.selectedCategoryIndex;
@@ -461,14 +457,6 @@ public class PartyScreen extends Screen {
             lastLocalRank = localRank;
             init();
             return;
-        }
-
-        Set<UUID> onlinePlayerIds = party != null && mc.getConnection() != null
-                ? mc.getConnection().getOnlinePlayers().stream().map(pi -> pi.getProfile().getId()).collect(Collectors.toSet())
-                : Set.of();
-        if (!onlinePlayerIds.equals(lastOnlinePlayerIds)) {
-            lastOnlinePlayerIds = onlinePlayerIds;
-            refreshPartyLists();
         }
 
         if (party != null && savedTabIndex == CLAIMS_TAB && claimsCheckTicks-- <= 0) {
