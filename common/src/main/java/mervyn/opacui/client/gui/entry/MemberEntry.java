@@ -19,6 +19,8 @@ import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import xaero.pac.client.api.OpenPACClientAPI;
+import xaero.pac.client.player.config.IPlayerConfigClientStorage;
+import xaero.pac.client.player.config.api.IPlayerConfigClientStorageManagerAPI;
 import xaero.pac.client.player.config.api.v2.IPlayerConfigStringableOptionClientStorageAPI;
 import xaero.pac.common.server.player.config.api.v2.IPlayerConfigOptionSpecAPI;
 import xaero.pac.common.server.player.config.api.v2.PlayerConfigOptions;
@@ -52,21 +54,30 @@ public class MemberEntry extends TooltipListEntry<Void> {
     private final Button btnKick;
     private final Button btnTransfer;
     private final Button btnShare;
-    private Boolean shownShare;
-    private boolean shownMutable;
-    private final ShareState shareState;
+    private String shownLabel;
+    private String shownTooltip;
 
     public static final class ShareState {
-        private final Consumer<Component> feedback;
+        private static ShareState current;
+
+        private final int session;
         private Boolean pending;
         private long until;
 
-        public ShareState(Consumer<Component> feedback) {
-            this.feedback = feedback;
+        private ShareState(int session) {
+            this.session = session;
         }
 
-        public void tick() {
-            if (pending == null) return;
+        // Kept by identity hash rather than a reference so a stale session can't hold the old connection alive.
+        public static ShareState get() {
+            int session = System.identityHashCode(Minecraft.getInstance().getConnection());
+            if (current == null || current.session != session)
+                current = new ShareState(session);
+            return current;
+        }
+
+        public void tick(Consumer<Component> feedback) {
+            if (pending == null || configSyncing()) return;
             boolean share = isOn(PlayerConfigOptions.SHARE_LOCATION_WITH_PARTY, myOption(PlayerConfigOptions.SHARE_LOCATION_WITH_PARTY));
             if (pending == share) {
                 pending = null;
@@ -83,7 +94,6 @@ public class MemberEntry extends TooltipListEntry<Void> {
             PartyMemberRank localRank,
             boolean localIsOwner,
             boolean isSelf,
-            ShareState shareState,
             Consumer<Component> onAction) {
         super(Component.literal(member.getUsername()), null);
         this.member = member;
@@ -147,12 +157,12 @@ public class MemberEntry extends TooltipListEntry<Void> {
         });
         btnTransfer.setTooltip(Tooltip.create(Component.translatable("screen.opacui.tooltip.transfer")));
 
-        this.shareState = shareState;
         btnShare = EntryButton.create(Component.empty(), b -> {
-            if (shareState.pending != null) return;
-            shareState.pending = !isOn(PlayerConfigOptions.SHARE_LOCATION_WITH_PARTY, myOption(PlayerConfigOptions.SHARE_LOCATION_WITH_PARTY));
-            shareState.until = Util.getMillis() + 5000;
-            PartyCommands.setShareLocation(mc, shareState.pending);
+            ShareState state = ShareState.get();
+            if (state.pending != null || configSyncing()) return;
+            state.pending = !isOn(PlayerConfigOptions.SHARE_LOCATION_WITH_PARTY, myOption(PlayerConfigOptions.SHARE_LOCATION_WITH_PARTY));
+            state.until = Util.getMillis() + 5000;
+            PartyCommands.setShareLocation(mc, state.pending);
         });
         btnShare.visible = isSelf;
 
@@ -212,16 +222,19 @@ public class MemberEntry extends TooltipListEntry<Void> {
 
         if (btnShare.visible) {
             IPlayerConfigStringableOptionClientStorageAPI<Boolean> option = myOption(PlayerConfigOptions.SHARE_LOCATION_WITH_PARTY);
-            boolean share = isOn(PlayerConfigOptions.SHARE_LOCATION_WITH_PARTY, option);
+            boolean syncing = configSyncing();
             boolean mutable = option.isMutable();
-            if (shownShare == null || shownShare != share || shownMutable != mutable) {
-                shownShare = share;
-                shownMutable = mutable;
-                btnShare.setMessage(Component.translatable(share ? "screen.opacui.sharing_on" : "screen.opacui.sharing_off"));
-                btnShare.setTooltip(Tooltip.create(Component.translatable(mutable
-                        ? "screen.opacui.tooltip.sharing" : "screen.opacui.tooltip.sharing_locked")));
+            String label = syncing ? "screen.opacui.sharing_loading"
+                    : isOn(PlayerConfigOptions.SHARE_LOCATION_WITH_PARTY, option) ? "screen.opacui.sharing_on" : "screen.opacui.sharing_off";
+            String tooltip = syncing ? "screen.opacui.tooltip.sharing_loading"
+                    : mutable ? "screen.opacui.tooltip.sharing" : "screen.opacui.tooltip.sharing_locked";
+            if (!label.equals(shownLabel) || !tooltip.equals(shownTooltip)) {
+                shownLabel = label;
+                shownTooltip = tooltip;
+                btnShare.setMessage(Component.translatable(label));
+                btnShare.setTooltip(Tooltip.create(Component.translatable(tooltip)));
             }
-            btnShare.active = mutable && shareState.pending == null;
+            btnShare.active = !syncing && mutable && ShareState.get().pending == null;
             btnShare.setX(rightEdge - BTN_W);
             btnShare.setY(btnY);
             btnShare.render(g, mouseX, mouseY, delta);
@@ -259,6 +272,13 @@ public class MemberEntry extends TooltipListEntry<Void> {
         return connection != null && connection.getPlayerInfo(member.getUUID()) != null;
     }
 
+    // Until OPAC's login sync finishes, options read as OPAC's built-in defaults rather than the server's.
+    private static boolean configSyncing() {
+        IPlayerConfigClientStorageManagerAPI configs = OpenPACClientAPI.get().getPlayerConfigClientStorageManager();
+        return configs.getMyPlayerConfig() instanceof IPlayerConfigClientStorage<?> mine && mine.isSyncInProgress()
+                || configs.getDefaultPlayerConfig() instanceof IPlayerConfigClientStorage<?> defaults && defaults.isSyncInProgress();
+    }
+
     private static IPlayerConfigStringableOptionClientStorageAPI<Boolean> myOption(IPlayerConfigOptionSpecAPI<Boolean> spec) {
         return OpenPACClientAPI.get().getPlayerConfigClientStorageManager().getMyPlayerConfig().getOption(spec);
     }
@@ -287,7 +307,7 @@ public class MemberEntry extends TooltipListEntry<Void> {
             IPartyMemberDynamicInfoSyncableAPI info = OpenPACClientAPI.get().getClientPartyStorage()
                     .getPartyMemberDynamicInfoSyncableStorage().getForPlayer(member.getUUID());
             if (info == null || info.getDimension() == null) {
-                boolean receiving = isOn(PlayerConfigOptions.RECEIVE_LOCATIONS_FROM_PARTY, myOption(PlayerConfigOptions.RECEIVE_LOCATIONS_FROM_PARTY));
+                boolean receiving = configSyncing() || isOn(PlayerConfigOptions.RECEIVE_LOCATIONS_FROM_PARTY, myOption(PlayerConfigOptions.RECEIVE_LOCATIONS_FROM_PARTY));
                 return new Component[] { Component.translatable(receiving ? "screen.opacui.members.location_hidden"
                         : "screen.opacui.members.location_off").withStyle(ChatFormatting.GRAY) };
             }

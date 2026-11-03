@@ -76,7 +76,6 @@ public class PartyScreen extends Screen {
 
     // ── Feedback ──────────────────────────────────────────────────────────
     private Component feedbackText;
-    private final MemberEntry.ShareState shareState = new MemberEntry.ShareState(this::showFeedback);
     private int feedbackTimer;
 
     // ── Tab & State Tracking ─────────────────────────────────────────────
@@ -210,7 +209,7 @@ public class PartyScreen extends Screen {
                 .sorted(MEMBER_ORDER)
                 .forEach(member -> {
                     boolean isSelf = Objects.equals(member.getUUID(), localUUID);
-                    membersCategory.addEntry(new MemberEntry(member, localRank, localIsOwner, isSelf, shareState, msg -> {
+                    membersCategory.addEntry(new MemberEntry(member, localRank, localIsOwner, isSelf, msg -> {
                         showFeedback(msg);
                         scheduleActionRefresh();
                     }));
@@ -427,7 +426,7 @@ public class PartyScreen extends Screen {
         if (clothScreen != null) {
             clothScreen.tick();
         }
-        shareState.tick();
+        MemberEntry.ShareState.get().tick(this::showFeedback);
 
         if (clothScreen instanceof AbstractConfigScreen acs) {
             int currentTab = acs.selectedCategoryIndex;
