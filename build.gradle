@@ -18,6 +18,10 @@ subprojects {
 		}
 	}
 
+	tasks.withType(JavaCompile).configureEach {
+		options.encoding = 'UTF-8'
+	}
+
 	afterEvaluate {
 		base {
 			archivesName = "opacui-${project.name}-${rootProject.minecraft_version}"
