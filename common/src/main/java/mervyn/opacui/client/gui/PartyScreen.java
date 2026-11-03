@@ -110,6 +110,7 @@ public class PartyScreen extends Screen {
         if (clothScreen instanceof AbstractConfigScreen acs) {
             savedTabIndex = acs.selectedCategoryIndex;
         }
+        String typed = actionBarWidget.getInviteBox() != null ? actionBarWidget.getInviteBox().getValue() : "";
         super.init();
         clearWidgets();
         clothScreen = null;
@@ -131,6 +132,7 @@ public class PartyScreen extends Screen {
             initNoParty();
         } else {
             initInParty(party);
+            if (!typed.isEmpty()) actionBarWidget.populateInputBox(typed);
         }
     }
 
@@ -452,9 +454,8 @@ public class PartyScreen extends Screen {
             lastMemberCount = memberCount;
             lastInviteCount = inviteCount;
             lastAllyCount = allyCount;
-            lastIsOwner = localIsOwner;
             lastLocalRank = localRank;
-            init();
+            refreshPartyLists();
             return;
         }
 
