@@ -33,6 +33,10 @@ public final class PartyCommands {
         send(mc, "opac player-config set parties.name \"" + escaped + "\"");
     }
 
+    public static void setShareLocation(Minecraft mc, boolean share) {
+        send(mc, "opac player-config set parties.shareLocationWithParty " + share);
+    }
+
     // ── Member management ─────────────────────────────────────────────────
 
     /** Sends a party invite to the given player name. Requires MODERATOR+. */
