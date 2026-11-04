@@ -121,6 +121,7 @@ public class PartyScreen extends Screen {
 
     @Override
     protected void init() {
+        String typed = actionBarWidget.getInviteBox() != null ? actionBarWidget.getInviteBox().getValue() : "";
         super.init();
         clearWidgets();
         membersList = null;
@@ -146,6 +147,7 @@ public class PartyScreen extends Screen {
             initNoParty();
         } else {
             initInParty(party);
+            if (!typed.isEmpty()) actionBarWidget.populateInputBox(typed);
         }
     }
 
@@ -489,9 +491,8 @@ public class PartyScreen extends Screen {
             lastMemberCount = memberCount;
             lastInviteCount = inviteCount;
             lastAllyCount = allyCount;
-            lastIsOwner = localIsOwner;
             lastLocalRank = localRank;
-            init();
+            refreshPartyLists();
             return;
         }
 
