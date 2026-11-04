@@ -1,5 +1,6 @@
 package mervyn.opacui.client.gui.entry;
 
+import mervyn.opacui.client.gui.PartyScreen;
 import mervyn.opacui.client.util.AvatarCache;
 import net.minecraft.client.gui.components.PlayerFaceExtractor;
 import net.minecraft.world.entity.player.PlayerSkin;
@@ -12,8 +13,18 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.resources.Identifier;
+import net.minecraft.util.Util;
+import xaero.pac.client.api.OpenPACClientAPI;
+import xaero.pac.client.player.config.IPlayerConfigClientStorage;
+import xaero.pac.client.player.config.api.IPlayerConfigClientStorageManagerAPI;
+import xaero.pac.client.player.config.api.v2.IPlayerConfigStringableOptionClientStorageAPI;
+import xaero.pac.common.parties.party.api.IPartyMemberDynamicInfoSyncableAPI;
+import xaero.pac.common.server.player.config.api.v2.IPlayerConfigOptionSpecAPI;
+import xaero.pac.common.server.player.config.api.v2.PlayerConfigOptions;
 import xaero.pac.common.parties.party.member.PartyMemberRank;
 import xaero.pac.common.parties.party.member.api.IPartyMemberAPI;
 
@@ -22,7 +33,8 @@ import java.util.function.Consumer;
 
 /**
  * A single scrollable-list row representing one party member.
- * Renders: [★?] username (rank label) [▼Rank] [▲Rank] [Kick] [Transfer?]
+ * Renders: [★?] username (rank label) [▼Rank] [▲Rank] [Kick] [Transfer?] [Sharing, own row only]
+ * Hovering an online member shows where they are, if OPAC has their location.
  *
  * Buttons are only shown if the local player has sufficient rank.
  */
@@ -33,23 +45,54 @@ public class MemberEntry extends AbstractPartyEntry {
     private static final int BTN_GAP = EntryButton.GAP;
 
     private final IPartyMemberAPI member;
-    private final boolean isOnline;
 
     // Action buttons — initialised in the constructor
     private final Button btnRankDown;
     private final Button btnRankUp;
     private final Button btnKick;
     private final Button btnTransfer;
+    private final Button btnShare;
+    private String shownLabel;
+    private String shownTooltip;
+
+    public static final class ShareState {
+        private static ShareState current;
+
+        private final int session;
+        private Boolean pending;
+        private long until;
+
+        private ShareState(int session) {
+            this.session = session;
+        }
+
+        // Kept by identity hash rather than a reference so a stale session can't hold the old connection alive.
+        public static ShareState get() {
+            int session = System.identityHashCode(Minecraft.getInstance().getConnection());
+            if (current == null || current.session != session)
+                current = new ShareState(session);
+            return current;
+        }
+
+        public void tick(Consumer<Component> feedback) {
+            if (pending == null || configSyncing()) return;
+            boolean share = isOn(PlayerConfigOptions.SHARE_LOCATION_WITH_PARTY, myOption(PlayerConfigOptions.SHARE_LOCATION_WITH_PARTY));
+            if (pending == share) {
+                pending = null;
+                feedback.accept(Component.translatable(share ? "screen.opacui.feedback.sharing_on" : "screen.opacui.feedback.sharing_off"));
+            } else if (Util.getMillis() > until) {
+                pending = null;
+            }
+        }
+    }
 
     public MemberEntry(
             IPartyMemberAPI member,
             PartyMemberRank localRank,
             boolean localIsOwner,
             boolean isSelf,
-            boolean isOnline,
             Consumer<Component> onAction) {
         this.member = member;
-        this.isOnline = isOnline;
 
         Minecraft mc = Minecraft.getInstance();
 
@@ -110,6 +153,15 @@ public class MemberEntry extends AbstractPartyEntry {
         });
         btnTransfer.setTooltip(Tooltip.create(Component.translatable("screen.opacui.tooltip.transfer")));
 
+        btnShare = EntryButton.create(Component.empty(), b -> {
+            ShareState state = ShareState.get();
+            if (state.pending != null || configSyncing()) return;
+            state.pending = !isOn(PlayerConfigOptions.SHARE_LOCATION_WITH_PARTY, myOption(PlayerConfigOptions.SHARE_LOCATION_WITH_PARTY));
+            state.until = Util.getMillis() + 5000;
+            PartyCommands.setShareLocation(mc, state.pending);
+        });
+        btnShare.visible = isSelf;
+
         // Visibility rules:
         // rank buttons: ADMIN+ only, not on self, not on owner, target rank below local rank
         // (unless owner, who bypasses the rank comparison server-side)
@@ -149,7 +201,6 @@ public class MemberEntry extends AbstractPartyEntry {
 
     @Override
     public void extractContent(GuiGraphicsExtractor g, int mouseX, int mouseY, boolean isHovered, float delta) {
-        Minecraft mc = Minecraft.getInstance();
         int x = getContentX();
         int y = getContentY();
         int entryWidth = getContentWidth();
@@ -157,12 +208,33 @@ public class MemberEntry extends AbstractPartyEntry {
 
         MutableComponent rankLabel = Component.literal(" [" + member.getRank().name() + "]")
                 .withStyle(ChatFormatting.DARK_GRAY);
-        drawMember(g, member, isOnline, rankLabel, x, y, entryHeight);
+        boolean online = isOnline(member);
+        drawMember(g, member, online, rankLabel, x, y, entryHeight);
 
         // ── Position & render buttons from right edge ──────────────────────
         int rightEdge = x + entryWidth - 2;
         int btnY = y + (entryHeight - BTN_H) / 2;
 
+        if (btnShare.visible) {
+            IPlayerConfigStringableOptionClientStorageAPI<Boolean> option = myOption(PlayerConfigOptions.SHARE_LOCATION_WITH_PARTY);
+            boolean syncing = configSyncing();
+            boolean mutable = option.isMutable();
+            String label = syncing ? "screen.opacui.sharing_loading"
+                    : isOn(PlayerConfigOptions.SHARE_LOCATION_WITH_PARTY, option) ? "screen.opacui.sharing_on" : "screen.opacui.sharing_off";
+            String tooltip = syncing ? "screen.opacui.tooltip.sharing_loading"
+                    : mutable ? "screen.opacui.tooltip.sharing" : "screen.opacui.tooltip.sharing_locked";
+            if (!label.equals(shownLabel) || !tooltip.equals(shownTooltip)) {
+                shownLabel = label;
+                shownTooltip = tooltip;
+                btnShare.setMessage(Component.translatable(label));
+                btnShare.setTooltip(Tooltip.create(Component.translatable(tooltip)));
+            }
+            btnShare.active = !syncing && mutable && ShareState.get().pending == null;
+            btnShare.setX(rightEdge - BTN_W);
+            btnShare.setY(btnY);
+            btnShare.extractRenderState(g, mouseX, mouseY, delta);
+            rightEdge -= BTN_W + BTN_GAP;
+        }
         if (btnTransfer.visible) {
             btnTransfer.setX(rightEdge - BTN_W);
             btnTransfer.setY(btnY);
@@ -184,16 +256,77 @@ public class MemberEntry extends AbstractPartyEntry {
             btnRankDown.setY(btnY);
             btnRankDown.extractRenderState(g, mouseX, mouseY, delta);
         }
+
+        if (isHovered && online && !btnShare.isHovered() && !btnTransfer.isHovered() && !btnKick.isHovered() && !btnRankUp.isHovered() && !btnRankDown.isHovered()) {
+            g.setComponentTooltipForNextFrame(Minecraft.getInstance().font, locationLines(), mouseX, mouseY);
+        }
+    }
+
+    static boolean isOnline(IPartyMemberAPI member) {
+        ClientPacketListener connection = Minecraft.getInstance().getConnection();
+        return connection != null && connection.getPlayerInfo(member.getUUID()) != null;
+    }
+
+    // Until OPAC's login sync finishes, options read as OPAC's built-in defaults rather than the server's.
+    private static boolean configSyncing() {
+        IPlayerConfigClientStorageManagerAPI configs = OpenPACClientAPI.get().getPlayerConfigClientStorageManager();
+        return configs.getMyPlayerConfig() instanceof IPlayerConfigClientStorage<?> mine && mine.isSyncInProgress()
+                || configs.getDefaultPlayerConfig() instanceof IPlayerConfigClientStorage<?> defaults && defaults.isSyncInProgress();
+    }
+
+    private static IPlayerConfigStringableOptionClientStorageAPI<Boolean> myOption(IPlayerConfigOptionSpecAPI<Boolean> spec) {
+        return OpenPACClientAPI.get().getPlayerConfigClientStorageManager().getMyPlayerConfig().getOption(spec);
+    }
+
+    private static boolean isOn(IPlayerConfigOptionSpecAPI<Boolean> spec, IPlayerConfigStringableOptionClientStorageAPI<Boolean> mine) {
+        Boolean value = mine.getValue();
+        return value != null ? value : serverDefault(spec);
+    }
+
+    private static boolean serverDefault(IPlayerConfigOptionSpecAPI<Boolean> spec) {
+        Boolean value = OpenPACClientAPI.get().getPlayerConfigClientStorageManager().getDefaultPlayerConfig().getOption(spec).getValue();
+        return value == null || value;
+    }
+
+    private List<Component> locationLines() {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null || mc.level == null) return List.of();
+        Identifier dimension;
+        double px, py, pz;
+        if (member.getUUID().equals(mc.player.getUUID())) {
+            dimension = mc.level.dimension().identifier();
+            px = mc.player.getX();
+            py = mc.player.getY();
+            pz = mc.player.getZ();
+        } else {
+            IPartyMemberDynamicInfoSyncableAPI info = OpenPACClientAPI.get().getClientPartyStorage()
+                    .getPartyMemberDynamicInfoSyncableStorage().getForPlayer(member.getUUID());
+            if (info == null || info.getDimension() == null) {
+                boolean receiving = configSyncing() || isOn(PlayerConfigOptions.RECEIVE_LOCATIONS_FROM_PARTY, myOption(PlayerConfigOptions.RECEIVE_LOCATIONS_FROM_PARTY));
+                return List.of(Component.translatable(receiving ? "screen.opacui.members.location_hidden"
+                        : "screen.opacui.members.location_off").withStyle(ChatFormatting.GRAY));
+            }
+            dimension = info.getDimension();
+            px = info.getX();
+            py = info.getY();
+            pz = info.getZ();
+        }
+        Component where = Component.translatable("screen.opacui.members.location", PartyScreen.dimensionName(dimension),
+                (int) Math.floor(px), (int) Math.floor(py), (int) Math.floor(pz));
+        if (!dimension.equals(mc.level.dimension().identifier()) || member.getUUID().equals(mc.player.getUUID()))
+            return List.of(where);
+        int distance = (int) Math.sqrt(mc.player.distanceToSqr(px, py, pz));
+        return List.of(where, Component.translatable("screen.opacui.members.distance", distance).withStyle(ChatFormatting.GRAY));
     }
 
     @Override
     public List<? extends net.minecraft.client.gui.components.events.GuiEventListener> children() {
-        return List.of(btnRankDown, btnRankUp, btnKick, btnTransfer);
+        return List.of(btnRankDown, btnRankUp, btnKick, btnTransfer, btnShare);
     }
 
     @Override
     public List<? extends net.minecraft.client.gui.narration.NarratableEntry> narratables() {
-        return List.of(btnRankDown, btnRankUp, btnKick, btnTransfer);
+        return List.of(btnRankDown, btnRankUp, btnKick, btnTransfer, btnShare);
     }
 
     // ── Rank cycling helpers ──────────────────────────────────────────────

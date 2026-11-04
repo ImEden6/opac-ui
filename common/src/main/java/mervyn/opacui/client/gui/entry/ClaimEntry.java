@@ -20,7 +20,6 @@ public class ClaimEntry extends AbstractPartyEntry {
     private static final int MAP_BUTTON_SIZE = 20;
 
     private final IPartyMemberAPI member;
-    private final boolean isOnline;
     private final int claims;
     private final int forceloads;
     private final int claimLimit;
@@ -28,10 +27,9 @@ public class ClaimEntry extends AbstractPartyEntry {
     private final List<Component> dimensions;
     private final Button btnMap;
 
-    public ClaimEntry(IPartyMemberAPI member, boolean isOnline, int claims, int forceloads, int claimLimit, int forceloadLimit,
+    public ClaimEntry(IPartyMemberAPI member, int claims, int forceloads, int claimLimit, int forceloadLimit,
                       List<Component> dimensions, ChunkPos mapTarget, String mapElsewhere) {
         this.member = member;
-        this.isOnline = isOnline;
         this.claims = claims;
         this.forceloads = forceloads;
         this.claimLimit = claimLimit;
@@ -60,7 +58,7 @@ public class ClaimEntry extends AbstractPartyEntry {
         int entryHeight = getContentHeight();
         int right = x + getContentWidth() - 2;
 
-        MemberEntry.drawMember(g, member, isOnline, Component.empty(), x, y, entryHeight);
+        MemberEntry.drawMember(g, member, MemberEntry.isOnline(member), Component.empty(), x, y, entryHeight);
 
         if (btnMap.visible) {
             btnMap.setX(right - MAP_BUTTON_SIZE);
