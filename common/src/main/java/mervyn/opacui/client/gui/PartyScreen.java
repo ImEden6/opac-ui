@@ -100,7 +100,6 @@ public class PartyScreen extends Screen {
     private int lastAllyCount;
     private boolean lastIsOwner;
     private PartyMemberRank lastLocalRank;
-    private Set<UUID> lastOnlinePlayerIds = Set.of();
     private List<Object> lastClaimsSnapshot = List.of();
     private int claimsCheckTicks;
     private int actionRefreshTicks;
@@ -253,16 +252,11 @@ public class PartyScreen extends Screen {
 
         // Members Tab
         membersList = new PartyEntryList(mc, width, listHeight, LIST_TOP);
-        Set<UUID> onlinePlayers = minecraft.getConnection() != null
-                ? minecraft.getConnection().getOnlinePlayers().stream().map(pi -> pi.getProfile().id()).collect(Collectors.toSet())
-                : Set.of();
-
         party.getMemberInfoStream()
                 .sorted(MEMBER_ORDER)
                 .forEach(member -> {
                     boolean isSelf = Objects.equals(member.getUUID(), localUUID);
-                    boolean isOnline = onlinePlayers.contains(member.getUUID());
-                    membersList.addRow(new MemberEntry(member, localRank, localIsOwner, isSelf, isOnline, msg -> {
+                    membersList.addRow(new MemberEntry(member, localRank, localIsOwner, isSelf, msg -> {
                         showFeedback(msg);
                         scheduleActionRefresh();
                     }));
@@ -296,10 +290,10 @@ public class PartyScreen extends Screen {
             });
         }
 
-        claimsList = buildClaimsList(party, localUUID, onlinePlayers, listHeight);
+        claimsList = buildClaimsList(party, localUUID, listHeight);
     }
 
-    private PartyEntryList buildClaimsList(IClientPartyAPI party, UUID localUUID, Set<UUID> onlinePlayers, int listHeight) {
+    private PartyEntryList buildClaimsList(IClientPartyAPI party, UUID localUUID, int listHeight) {
         PartyEntryList list = new PartyEntryList(minecraft, width, listHeight, LIST_TOP);
         IClientClaimsManagerAPI claims = OpenPACClientAPI.get().getClaimsManager();
         if (claims.isLoading()) {
@@ -319,7 +313,7 @@ public class PartyScreen extends Screen {
             int forceloads = isSelf ? claims.getForceloadCount() : info != null ? info.getForceloadCount() : -1;
             ChunkPos mapTarget = worldMap && info != null ? nearestClaim(info) : null;
             String mapElsewhere = worldMap && info != null && mapTarget == null ? otherClaimDimension(info) : null;
-            list.addRow(new ClaimEntry(member, onlinePlayers.contains(member.getUUID()), count, forceloads,
+            list.addRow(new ClaimEntry(member, count, forceloads,
                     isSelf ? claims.getClaimLimit() : -1, isSelf ? claims.getForceloadLimit() : -1, dimensionLines(info),
                     mapTarget, mapElsewhere));
         });
@@ -340,7 +334,7 @@ public class PartyScreen extends Screen {
                 .toList();
     }
 
-    private static String dimensionName(Identifier id) {
+    public static String dimensionName(Identifier id) {
         StringBuilder name = new StringBuilder();
         for (String word : id.getPath().split("_")) {
             if (word.isEmpty()) continue;
@@ -403,7 +397,7 @@ public class PartyScreen extends Screen {
     private void refreshClaimsList(IClientPartyAPI party) {
         UUID localUUID = minecraft.player == null ? null : minecraft.player.getUUID();
         double scroll = claimsList != null ? claimsList.scrollAmount() : 0;
-        claimsList = buildClaimsList(party, localUUID, lastOnlinePlayerIds, (height - LIST_BOTTOM_MARGIN) - LIST_TOP);
+        claimsList = buildClaimsList(party, localUUID, (height - LIST_BOTTOM_MARGIN) - LIST_TOP);
         claimsList.setScrollAmount(scroll);
         if (savedTabIndex == CLAIMS_TAB) {
             showTab(CLAIMS_TAB);
@@ -496,13 +490,7 @@ public class PartyScreen extends Screen {
             return;
         }
 
-        Set<UUID> onlinePlayerIds = party != null && mc.getConnection() != null
-                ? mc.getConnection().getOnlinePlayers().stream().map(pi -> pi.getProfile().id()).collect(Collectors.toSet())
-                : Set.of();
-        if (!onlinePlayerIds.equals(lastOnlinePlayerIds)) {
-            lastOnlinePlayerIds = onlinePlayerIds;
-            refreshPartyLists();
-        }
+        MemberEntry.ShareState.get().tick(this::showFeedback);
 
         if (party != null && savedTabIndex == CLAIMS_TAB && claimsCheckTicks-- <= 0) {
             List<Object> claimsSnapshot = claimsSnapshot(party);
