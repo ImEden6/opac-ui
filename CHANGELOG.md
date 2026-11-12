@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Typing in the invite box no longer gets wiped when someone joins the party or a rank changes.
 - The party screen no longer rebuilds every tab whenever any player on the server logs in or out. Online dots now update on their own.
+- With menu background blur on, the party screen and confirm dialog no longer blur their own lists and text ([#5](https://github.com/ImEden6/opac-ui/issues/5)).
 
 ## [1.1.0] - 2026-10-29
 

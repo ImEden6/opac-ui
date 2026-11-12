@@ -58,7 +58,7 @@ public class ConfirmActionScreen extends Screen {
 
     @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float delta) {
-        renderBackground(g, mouseX, mouseY, delta);
+        super.renderBackground(g, mouseX, mouseY, delta);
 
         g.fill(boxX - 2, boxY - 2, boxX + BOX_W + 2, boxY + boxH + 2, 0xFF222222);
         g.fill(boxX, boxY, boxX + BOX_W, boxY + boxH, 0xFF333333);
@@ -72,6 +72,10 @@ public class ConfirmActionScreen extends Screen {
         }
 
         super.render(g, mouseX, mouseY, delta);
+    }
+
+    @Override
+    public void renderBackground(GuiGraphics g, int mouseX, int mouseY, float delta) {
     }
 
     @Override

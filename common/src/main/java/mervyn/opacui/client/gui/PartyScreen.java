@@ -400,6 +400,7 @@ public class PartyScreen extends Screen {
 
     @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float delta) {
+        super.renderBackground(g, mouseX, mouseY, delta);
         if (clothScreen != null) {
             clothScreen.render(g, mouseX, mouseY, delta);
         } else {
@@ -414,6 +415,11 @@ public class PartyScreen extends Screen {
 
         super.render(g, mouseX, mouseY, delta);
         suggestionDropdown.render(g, font, minecraft, width / 2 - 132, height - BAR_Y_OFFSET, 198);
+    }
+
+    // super.render would blur again on top of the lists cloth already drew
+    @Override
+    public void renderBackground(GuiGraphics g, int mouseX, int mouseY, float delta) {
     }
 
     @Override
