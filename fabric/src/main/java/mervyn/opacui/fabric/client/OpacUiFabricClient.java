@@ -22,5 +22,8 @@ public class OpacUiFabricClient implements ClientModInitializer {
                 mc.setScreen(new PartyScreen(mc.screen));
             }
         });
+
+        if (Showcase.ENABLED)
+            ClientTickEvents.END_CLIENT_TICK.register(Showcase::tick);
     }
 }

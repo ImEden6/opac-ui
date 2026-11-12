@@ -14,6 +14,15 @@ loom {
 			runDir "run2"
 			programArgs "--username", "Tester2"
 		}
+		// drops into run/saves/New World, screenshots the party screens to
+		// run/screenshots/showcase_*.png and quits
+		clientShowcase {
+			client()
+			name "Fabric Client Showcase"
+			source sourceSets.main
+			programArgs "--quickPlaySingleplayer", "New World", "--width", "1600", "--height", "900"
+			vmArg "-Dopacui.showcase=true"
+		}
 		server {
 			runDir "run-server"
 		}
